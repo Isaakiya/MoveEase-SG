@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MoveEase SG | Find Your Next Home</title>
+    <meta
+      name="description"
+      content="MoveEase SG helps you browse properties, compare mortgage costs, and plan your move in one place."
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body data-page="home">
+    <a class="skip-link" href="#main-content">Skip to content</a>
+
+    <header class="site-header">
+      <div class="container header-bar">
+        <a class="brand" href="index.html">MoveEase SG</a>
+        <button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="site-nav">
+          <span class="menu-toggle__label">Menu</span>
+        </button>
+        <nav id="site-nav" class="site-nav" aria-label="Primary navigation"></nav>
+      </div>
+    </header>
+
+    <main id="main-content">
+      <section class="hero">
+        <div class="container hero__grid">
+          <div class="hero__content">
+            <p class="eyebrow">Property search made simple</p>
+            <h1>Find a place that feels like home.</h1>
+            <p class="hero__text">
+              Discover modern homes, compare moving services, and plan your mortgage in one smooth experience.
+            </p>
+            <div class="hero__actions">
+              <a class="button button--primary" href="search.html">Browse properties</a>
+              <a class="button button--secondary" href="mortgage.html">Try the mortgage calculator</a>
+            </div>
+          </div>
+
+          <div class="card hero__panel" aria-labelledby="search-panel-title">
+            <h2 id="search-panel-title">Search your next home</h2>
+            <form id="home-search-form" class="search-form" novalidate>
+              <label class="field-group">
+                <span class="field-group__label">Location</span>
+                <input type="text" name="location" placeholder="Tampines" />
+              </label>
+
+              <label class="field-group">
+                <span class="field-group__label">Property type</span>
+                <select name="propertyType">
+                  <option value="">Any</option>
+                  <option value="Condo">Condo</option>
+                  <option value="HDB">HDB</option>
+                  <option value="Landed">Landed</option>
+                </select>
+              </label>
+
+              <div class="field-row">
+                <label class="field-group">
+                  <span class="field-group__label">Min price</span>
+                  <input type="number" name="minPrice" min="0" step="100000" placeholder="800000" />
+                </label>
+                <label class="field-group">
+                  <span class="field-group__label">Max price</span>
+                  <input type="number" name="maxPrice" min="0" step="100000" placeholder="1500000" />
+                </label>
+              </div>
+
+              <div class="field-row">
+                <label class="field-group">
+                  <span class="field-group__label">Bedrooms</span>
+                  <input type="number" name="bedrooms" min="1" step="1" placeholder="2" />
+                </label>
+                <label class="field-group">
+                  <span class="field-group__label">Bathrooms</span>
+                  <input type="number" name="bathrooms" min="1" step="1" placeholder="2" />
+                </label>
+              </div>
+
+              <button class="button button--primary button--full" type="submit">Search</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Featured homes</p>
+              <h2>Popular picks for your next move</h2>
+            </div>
+            <a class="text-link" href="search.html">View all listings</a>
+          </div>
+          <div id="featured-properties" class="property-grid" data-results></div>
+          <div id="loading-state" class="loading-state" aria-live="polite" hidden></div>
+          <div id="error-state" class="status-message" data-error hidden></div>
+        </div>
+      </section>
+
+      <section class="section section--alt">
+        <div class="container">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Moving support</p>
+              <h2>Flexible services when you need a hand</h2>
+            </div>
+            <a class="text-link" href="moving.html">See all services</a>
+          </div>
+          <div id="moving-preview" class="service-grid"></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container benefits-grid">
+          <article class="card benefit-card">
+            <h3>Trusted local insights</h3>
+            <p>Compare neighbourhoods, property types, and move-ready services with confidence.</p>
+          </article>
+          <article class="card benefit-card">
+            <h3>Quick mortgage checks</h3>
+            <p>Estimate monthly repayments instantly before you commit to a loan.</p>
+          </article>
+          <article class="card benefit-card">
+            <h3>Saved favourites</h3>
+            <p>Keep your best options in one place and come back anytime.</p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer id="site-footer" class="site-footer"></footer>
+
+    <button class="assistant-launcher" type="button" id="assistant-launcher" aria-controls="assistant-panel" aria-expanded="false">
+      <span class="assistant-launcher__icon" aria-hidden="true">✦</span>
+      <span class="assistant-launcher__label">Assistant</span>
+    </button>
+
+    <aside class="assistant-panel" id="assistant-panel" aria-labelledby="assistant-panel-title" hidden>
+      <header class="assistant-panel__header">
+        <div>
+          <p class="assistant-panel__eyebrow">MoveEase AI</p>
+          <h2 id="assistant-panel-title">MoveEase AI Assistant</h2>
+        </div>
+        <button class="assistant-panel__close" type="button" id="assistant-close" aria-label="Close assistant">×</button>
+      </header>
+
+      <div class="assistant-panel__messages" id="assistant-messages" aria-live="polite" tabindex="0">
+        <div id="assistant-empty-state" class="assistant-panel__empty-state">
+          <p>Ask me about homes, budgets, or nearby amenities.</p>
+        </div>
+        <div id="assistant-typing" class="assistant-panel__typing" hidden aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </div>
+
+      <form class="assistant-panel__composer" id="assistant-form" novalidate>
+        <label class="assistant-panel__field" for="assistant-input">
+          <span class="sr-only">Ask the assistant</span>
+          <input type="text" id="assistant-input" name="assistantInput" placeholder="Ask about homes, budgets, or locations" autocomplete="off" />
+        </label>
+        <button class="assistant-panel__send" type="submit" id="assistant-send">Send</button>
+      </form>
+    </aside>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>

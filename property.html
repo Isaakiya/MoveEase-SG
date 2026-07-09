@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Property Details | MoveEase SG</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body data-page="property">
+    <a class="skip-link" href="#main-content">Skip to content</a>
+
+    <header class="site-header">
+      <div class="container header-bar">
+        <a class="brand" href="index.html">MoveEase SG</a>
+        <button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="site-nav">
+          <span class="menu-toggle__label">Menu</span>
+        </button>
+        <nav id="site-nav" class="site-nav" aria-label="Primary navigation"></nav>
+      </div>
+    </header>
+
+    <main id="main-content" class="page-shell">
+      <div class="container">
+        <div id="loading-state" class="loading-state" aria-live="polite" hidden></div>
+        <div id="error-state" class="status-message" data-error hidden></div>
+
+        <section id="property-hero" class="property-detail">
+          <div class="property-detail__media">
+            <img id="property-image" class="property-detail__image" src="" alt="Featured property" />
+          </div>
+          <div class="property-detail__content">
+            <div class="detail-actions">
+              <div>
+                <p class="eyebrow">Property details</p>
+                <h1 id="property-title">Loading property...</h1>
+              </div>
+              <button class="button button--outline" type="button" id="property-favourite-button">Save</button>
+            </div>
+            <p id="property-location" class="property-detail__location"></p>
+            <div class="stats-grid" id="property-stats"></div>
+            <p id="property-description" class="property-detail__description"></p>
+            <h2>Amenities</h2>
+            <ul id="property-amenities" class="amenities-list"></ul>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Related homes</p>
+              <h2>More options you may like</h2>
+            </div>
+          </div>
+          <div id="related-properties" class="property-grid"></div>
+        </section>
+      </div>
+    </main>
+
+    <footer id="site-footer" class="site-footer"></footer>
+
+    <button class="assistant-launcher" type="button" id="assistant-launcher" aria-controls="assistant-panel" aria-expanded="false">
+      <span class="assistant-launcher__icon" aria-hidden="true">✦</span>
+      <span class="assistant-launcher__label">Assistant</span>
+    </button>
+
+    <aside class="assistant-panel" id="assistant-panel" aria-labelledby="assistant-panel-title" hidden>
+      <header class="assistant-panel__header">
+        <div>
+          <p class="assistant-panel__eyebrow">MoveEase AI</p>
+          <h2 id="assistant-panel-title">MoveEase AI Assistant</h2>
+        </div>
+        <button class="assistant-panel__close" type="button" id="assistant-close" aria-label="Close assistant">×</button>
+      </header>
+
+      <div class="assistant-panel__messages" id="assistant-messages" aria-live="polite" tabindex="0">
+        <div id="assistant-empty-state" class="assistant-panel__empty-state">
+          <p>Ask me about homes, budgets, or nearby amenities.</p>
+        </div>
+        <div id="assistant-typing" class="assistant-panel__typing" hidden aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </div>
+
+      <form class="assistant-panel__composer" id="assistant-form" novalidate>
+        <label class="assistant-panel__field" for="assistant-input">
+          <span class="sr-only">Ask the assistant</span>
+          <input type="text" id="assistant-input" name="assistantInput" placeholder="Ask about homes, budgets, or locations" autocomplete="off" />
+        </label>
+        <button class="assistant-panel__send" type="submit" id="assistant-send">Send</button>
+      </form>
+    </aside>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>

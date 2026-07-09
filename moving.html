@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Moving Services | MoveEase SG</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body data-page="moving">
+    <a class="skip-link" href="#main-content">Skip to content</a>
+
+    <header class="site-header">
+      <div class="container header-bar">
+        <a class="brand" href="index.html">MoveEase SG</a>
+        <button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="site-nav">
+          <span class="menu-toggle__label">Menu</span>
+        </button>
+        <nav id="site-nav" class="site-nav" aria-label="Primary navigation"></nav>
+      </div>
+    </header>
+
+    <main id="main-content" class="page-shell">
+      <div class="container">
+        <section class="page-heading">
+          <p class="eyebrow">Moving support</p>
+          <h1>Flexible services for your relocation</h1>
+          <p>Choose from packing, transport, and full-service moves to make your transition easier.</p>
+        </section>
+
+        <div id="loading-state" class="loading-state" aria-live="polite" hidden></div>
+        <div id="error-state" class="status-message" data-error hidden></div>
+        <div id="moving-services" class="service-grid"></div>
+      </div>
+    </main>
+
+    <footer id="site-footer" class="site-footer"></footer>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>

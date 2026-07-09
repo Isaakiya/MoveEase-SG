@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Search Properties | MoveEase SG</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body data-page="search">
+    <a class="skip-link" href="#main-content">Skip to content</a>
+
+    <header class="site-header">
+      <div class="container header-bar">
+        <a class="brand" href="index.html">MoveEase SG</a>
+        <button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="site-nav">
+          <span class="menu-toggle__label">Menu</span>
+        </button>
+        <nav id="site-nav" class="site-nav" aria-label="Primary navigation"></nav>
+      </div>
+    </header>
+
+    <main id="main-content" class="page-shell">
+      <div class="container">
+        <section class="page-heading">
+          <p class="eyebrow">Browse homes</p>
+          <h1>Search properties across Singapore</h1>
+          <p>Refine by location, budget, size, and layout to find a match that fits your move.</p>
+        </section>
+
+        <section class="card filters-card" aria-labelledby="filter-title">
+          <h2 id="filter-title">Filters</h2>
+          <form id="search-form" class="search-form search-form--compact" novalidate>
+            <label class="field-group">
+              <span class="field-group__label">Location</span>
+              <input type="text" name="location" placeholder="Any area" />
+            </label>
+
+            <label class="field-group">
+              <span class="field-group__label">Property type</span>
+              <select name="propertyType">
+                <option value="">Any</option>
+                <option value="Condo">Condo</option>
+                <option value="HDB">HDB</option>
+                <option value="Landed">Landed</option>
+              </select>
+            </label>
+
+            <div class="field-row">
+              <label class="field-group">
+                <span class="field-group__label">Min price</span>
+                <input type="number" name="minPrice" min="0" step="100000" />
+              </label>
+              <label class="field-group">
+                <span class="field-group__label">Max price</span>
+                <input type="number" name="maxPrice" min="0" step="100000" />
+              </label>
+            </div>
+
+            <div class="field-row">
+              <label class="field-group">
+                <span class="field-group__label">Bedrooms</span>
+                <input type="number" name="bedrooms" min="1" step="1" />
+              </label>
+              <label class="field-group">
+                <span class="field-group__label">Bathrooms</span>
+                <input type="number" name="bathrooms" min="1" step="1" />
+              </label>
+            </div>
+
+            <label class="field-group">
+              <span class="field-group__label">Sort by</span>
+              <select name="sort">
+                <option value="newest">Newest listings</option>
+                <option value="price_asc">Price (low to high)</option>
+                <option value="price_desc">Price (high to low)</option>
+                <option value="area_desc">Largest floor area</option>
+                <option value="area_asc">Smallest floor area</option>
+              </select>
+            </label>
+
+            <button class="button button--primary" type="submit">Apply filters</button>
+          </form>
+        </section>
+
+        <div id="loading-state" class="loading-state" aria-live="polite" hidden></div>
+        <div id="error-state" class="status-message" data-error hidden></div>
+        <div id="search-results" class="property-grid" data-results></div>
+        <div id="pagination-controls" class="pagination" aria-label="Pagination"></div>
+      </div>
+    </main>
+
+    <footer id="site-footer" class="site-footer"></footer>
+
+    <button class="assistant-launcher" type="button" id="assistant-launcher" aria-controls="assistant-panel" aria-expanded="false">
+      <span class="assistant-launcher__icon" aria-hidden="true">✦</span>
+      <span class="assistant-launcher__label">Assistant</span>
+    </button>
+
+    <aside class="assistant-panel" id="assistant-panel" aria-labelledby="assistant-panel-title" hidden>
+      <header class="assistant-panel__header">
+        <div>
+          <p class="assistant-panel__eyebrow">MoveEase AI</p>
+          <h2 id="assistant-panel-title">MoveEase AI Assistant</h2>
+        </div>
+        <button class="assistant-panel__close" type="button" id="assistant-close" aria-label="Close assistant">×</button>
+      </header>
+
+      <div class="assistant-panel__messages" id="assistant-messages" aria-live="polite" tabindex="0">
+        <div id="assistant-empty-state" class="assistant-panel__empty-state">
+          <p>Ask me about homes, budgets, or nearby amenities.</p>
+        </div>
+        <div id="assistant-typing" class="assistant-panel__typing" hidden aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </div>
+
+      <form class="assistant-panel__composer" id="assistant-form" novalidate>
+        <label class="assistant-panel__field" for="assistant-input">
+          <span class="sr-only">Ask the assistant</span>
+          <input type="text" id="assistant-input" name="assistantInput" placeholder="Ask about homes, budgets, or locations" autocomplete="off" />
+        </label>
+        <button class="assistant-panel__send" type="submit" id="assistant-send">Send</button>
+      </form>
+    </aside>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>

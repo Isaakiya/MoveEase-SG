@@ -1,0 +1,1727 @@
+const API_BASE_URL = "";
+
+const API_ENDPOINTS = {
+  featuredProperties: "/api/properties?featured=true",
+  searchProperties: "/api/properties",
+  propertyDetails: (id) => `/api/properties/${id}`,
+  relatedProperties: "/api/properties/related",
+  movingServices: "/api/moving/services"
+};
+
+const STORAGE_KEYS = {
+  favourites: "favourites",
+  assistantSession: "assistantSession"
+};
+
+const DEFAULT_FILTERS = {
+  location: "",
+  propertyType: "",
+  minPrice: "",
+  maxPrice: "",
+  bedrooms: "",
+  bathrooms: "",
+  sort: "newest"
+};
+
+const PAGE_CONFIG = {
+  pageSize: 12,
+  relatedLimit: 4
+};
+
+const DEMO_PROPERTIES = [
+  {
+    id: "prop-001",
+    title: "Bright 3-Bedroom Condo",
+    location: "Tampines",
+    price: 980000,
+    propertyType: "Condo",
+    bedrooms: 3,
+    bathrooms: 2,
+    floorArea: 1200,
+    images: ["https://placehold.co/800x500?text=Bright+Condo"],
+    description: "A bright and modern condo close to MRT and schools.",
+    amenities: ["Pool", "Gym", "Security"],
+    featured: true,
+    postedDate: "2026-06-15"
+  },
+  {
+    id: "prop-002",
+    title: "Modern 2-Bedroom HDB",
+    location: "Yishun",
+    price: 680000,
+    propertyType: "HDB",
+    bedrooms: 2,
+    bathrooms: 2,
+    floorArea: 980,
+    images: ["https://placehold.co/800x500?text=Modern+HDB"],
+    description: "Spacious and practical with excellent amenities nearby.",
+    amenities: ["Parking", "Playground", "MRT"],
+    featured: true,
+    postedDate: "2026-06-20"
+  },
+  {
+    id: "prop-003",
+    title: "Garden Terrace House",
+    location: "Bishan",
+    price: 1450000,
+    propertyType: "Landed",
+    bedrooms: 4,
+    bathrooms: 3,
+    floorArea: 1800,
+    images: ["https://placehold.co/800x500?text=Garden+House"],
+    description: "A generous landed home with a lush garden and outdoor lounge.",
+    amenities: ["Garden", "Private Parking", "Study"],
+    featured: true,
+    postedDate: "2026-06-25"
+  }
+];
+
+const DEMO_MOVING_SERVICES = [
+  {
+    id: "svc-001",
+    title: "Full Move Assistance",
+    description: "End-to-end support for your relocation.",
+    price: 450,
+    category: "Premium",
+    image: "https://placehold.co/600x400?text=Full+Move",
+    ctaLabel: "Book now",
+    ctaUrl: "/moving.html",
+    featured: true,
+    duration: "4 hours"
+  },
+  {
+    id: "svc-002",
+    title: "Packing & Unpacking",
+    description: "Careful packing with premium materials.",
+    price: 220,
+    category: "Standard",
+    image: "https://placehold.co/600x400?text=Packing",
+    ctaLabel: "Get a quote",
+    ctaUrl: "/moving.html",
+    featured: true,
+    duration: "2 hours"
+  }
+];
+
+const state = {
+  currentPage: 1,
+  currentSearchFilters: { ...DEFAULT_FILTERS },
+  searchResults: [],
+  selectedProperty: null,
+  favourites: [],
+  loadingState: false,
+  errorState: null
+};
+
+const assistantSuggestedPrompts = [
+  "Find a condo near an MRT station",
+  "Show me homes under $1.5M",
+  "I want a 3-bedroom place with a pool"
+];
+
+const assistantState = {
+  assistantOpen: false,
+  conversationHistory: [],
+  currentPreferences: null,
+  currentRecommendations: [],
+  assistantConfidenceScore: null,
+  assistantConfidenceStatus: null,
+  assistantConfidenceExplanation: null,
+  assistantConfidenceFactors: [],
+  activeChatSessionId: null,
+  isAssistantLoading: false,
+  pendingClarificationField: null,
+  pendingClarificationContext: null,
+  selectedPropertyId: null,
+  lastSearchContext: {},
+  panelOpen: false,
+  preferences: null,
+  loadingState: false,
+  confidenceScore: null
+};
+
+function initApp() {
+  initAssistantFeature();
+  renderNavigation(document.getElementById("site-nav"));
+  renderFooter(document.getElementById("site-footer"));
+  bindMenuToggle();
+  state.favourites = getFavourites();
+
+  const pageName = getPageName();
+  if (pageName === "home") {
+    initHomePage();
+  } else if (pageName === "search") {
+    initSearchPage();
+  } else if (pageName === "property") {
+    initPropertyPage();
+  } else if (pageName === "mortgage") {
+    initMortgagePage();
+  } else if (pageName === "favourites") {
+    initFavouritesPage();
+  } else if (pageName === "moving") {
+    initMovingPage();
+  }
+}
+
+function getPageName() {
+  return document.body.dataset.page || "home";
+}
+
+function initAssistantFeature() {
+  const restoredState = restoreAssistantSession();
+
+  if (!restoredState) {
+    persistAssistantSession();
+  }
+
+  initAssistantLauncher();
+  initAssistantChat();
+  renderAssistantConversation(assistantState.conversationHistory);
+  setAssistantTypingState(Boolean(assistantState.isAssistantLoading || assistantState.loadingState));
+
+  return assistantState;
+}
+
+function initAssistantLauncher() {
+  const launcher = document.getElementById("assistant-launcher");
+  const panel = document.getElementById("assistant-panel");
+  const closeButton = document.getElementById("assistant-close");
+
+  if (!launcher || !panel) {
+    return;
+  }
+
+  const applyPanelState = () => {
+    const shouldOpen = Boolean(assistantState.assistantOpen || assistantState.panelOpen);
+    panel.hidden = !shouldOpen;
+    panel.setAttribute("aria-hidden", String(!shouldOpen));
+    launcher.setAttribute("aria-expanded", String(shouldOpen));
+    launcher.setAttribute("data-open", String(shouldOpen));
+    panel.classList.toggle("is-open", shouldOpen);
+    panel.classList.toggle("is-closed", !shouldOpen);
+  };
+
+  applyPanelState();
+
+  launcher.addEventListener("click", () => {
+    const nextState = !Boolean(assistantState.assistantOpen || assistantState.panelOpen);
+    updateAssistantState({ assistantOpen: nextState, panelOpen: nextState });
+    applyPanelState();
+  });
+
+  if (closeButton) {
+    closeButton.addEventListener("click", () => {
+      updateAssistantState({ assistantOpen: false, panelOpen: false });
+      applyPanelState();
+    });
+  }
+}
+
+function initAssistantChat() {
+  const form = document.getElementById("assistant-form");
+  const input = document.getElementById("assistant-input");
+
+  if (!form || !input) {
+    return;
+  }
+
+  ensureAssistantSummaryUI();
+  renderAssistantPromptChips();
+  renderAssistantPreferenceSummary(assistantState.currentPreferences, {
+    percentage: assistantState.assistantConfidenceScore,
+    explanation: assistantState.assistantConfidenceExplanation,
+    status: assistantState.assistantConfidenceStatus
+  });
+  form.addEventListener("submit", handleAssistantSubmit);
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      form.requestSubmit();
+    }
+  });
+}
+
+function ensureAssistantSummaryUI() {
+  const panel = document.getElementById("assistant-panel");
+  const messagesContainer = document.getElementById("assistant-messages");
+
+  if (!panel || !messagesContainer) {
+    return null;
+  }
+
+  let summary = document.getElementById("assistant-summary");
+
+  if (!summary) {
+    summary = document.createElement("section");
+    summary.id = "assistant-summary";
+    summary.className = "assistant-panel__summary";
+    summary.hidden = true;
+    panel.insertBefore(summary, messagesContainer);
+  }
+
+  return summary;
+}
+
+function renderAssistantPromptChips() {
+  const panel = document.getElementById("assistant-panel");
+  const messagesContainer = document.getElementById("assistant-messages");
+
+  if (!panel || !messagesContainer) {
+    return;
+  }
+
+  let suggestionsContainer = document.getElementById("assistant-suggestions");
+
+  if (!suggestionsContainer) {
+    suggestionsContainer = document.createElement("div");
+    suggestionsContainer.id = "assistant-suggestions";
+    suggestionsContainer.className = "assistant-panel__suggestions";
+    panel.insertBefore(suggestionsContainer, messagesContainer);
+  }
+
+  suggestionsContainer.innerHTML = "";
+
+  assistantSuggestedPrompts.forEach((prompt) => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "assistant-panel__suggestion";
+    chip.textContent = prompt;
+    chip.addEventListener("click", () => {
+      const input = document.getElementById("assistant-input");
+      if (input) {
+        input.value = prompt;
+        input.focus();
+      }
+    });
+
+    suggestionsContainer.appendChild(chip);
+  });
+
+  updateAssistantPromptVisibility();
+}
+
+function updateAssistantPromptVisibility() {
+  const suggestionsContainer = document.getElementById("assistant-suggestions");
+
+  if (!suggestionsContainer) {
+    return;
+  }
+
+  suggestionsContainer.hidden = Boolean(assistantState.conversationHistory.length);
+}
+
+function handleAssistantSubmit(event) {
+  event.preventDefault();
+
+  const input = document.getElementById("assistant-input");
+  const message = input?.value?.trim();
+
+  if (!message) {
+    return;
+  }
+
+  addUserMessage(message);
+  input.value = "";
+  updateAssistantPromptVisibility();
+  setAssistantTypingState(true);
+
+  window.setTimeout(() => {
+    const isClarificationReply = Boolean(assistantState.pendingClarificationContext);
+    const parsedPreferences = parseUserPreferences(message);
+    const preferences = isClarificationReply
+      ? mergePreferenceUpdates(assistantState.currentPreferences, parsedPreferences)
+      : parsedPreferences;
+    const confidence = calculateAssistantConfidence(preferences);
+    const clarificationField = getClarificationField(preferences, confidence);
+    const clarificationPrompt = clarificationField
+      ? requestClarificationForUncertainPreferences(preferences, clarificationField)
+      : null;
+
+    updateAssistantState({
+      currentPreferences: preferences,
+      preferences,
+      assistantConfidenceScore: confidence.percentage,
+      assistantConfidenceStatus: confidence.status,
+      assistantConfidenceExplanation: confidence.explanation,
+      assistantConfidenceFactors: confidence.factors || [],
+      pendingClarificationField: clarificationField || null,
+      pendingClarificationContext: clarificationField ? { field: clarificationField, originalMessage: message } : null
+    });
+
+    renderAssistantPreferenceSummary(preferences, confidence);
+    setAssistantTypingState(false);
+
+    if (clarificationPrompt) {
+      addAssistantMessage(clarificationPrompt);
+      return;
+    }
+
+    addAssistantMessage("I understand your request. I am analysing your preferences...");
+  }, 800);
+}
+
+function mergePreferenceUpdates(existingPreferences = {}, newPreferences = {}) {
+  const mergedPreferences = { ...(existingPreferences || {}) };
+
+  const scalarFields = ["location", "propertyType", "bedrooms", "bathrooms", "budget", "tenure", "developer", "propertyAge"];
+  scalarFields.forEach((field) => {
+    const incomingValue = newPreferences?.[field];
+    const existingValue = existingPreferences?.[field];
+
+    if (incomingValue !== null && incomingValue !== undefined && incomingValue !== "") {
+      mergedPreferences[field] = incomingValue;
+    } else if (existingValue !== null && existingValue !== undefined && existingValue !== "") {
+      mergedPreferences[field] = existingValue;
+    }
+  });
+
+  if (newPreferences?.floorArea) {
+    mergedPreferences.floorArea = newPreferences.floorArea;
+  }
+
+  const arrayFields = ["facilities", "nearbyAmenities"];
+  arrayFields.forEach((field) => {
+    const existingValues = Array.isArray(existingPreferences?.[field]) ? existingPreferences[field] : [];
+    const incomingValues = Array.isArray(newPreferences?.[field]) ? newPreferences[field] : [];
+    const combinedValues = [...new Set([...(existingValues || []), ...(incomingValues || [])])];
+    mergedPreferences[field] = combinedValues;
+  });
+
+  const existingRawInput = existingPreferences?.rawInput;
+  const incomingRawInput = newPreferences?.rawInput;
+  if (existingRawInput && incomingRawInput) {
+    mergedPreferences.rawInput = `${existingRawInput} | ${incomingRawInput}`;
+  } else {
+    mergedPreferences.rawInput = existingRawInput || incomingRawInput || "";
+  }
+
+  return mergedPreferences;
+}
+
+function getClarificationField(preferences = {}, confidenceResult = {}) {
+  const importantFields = ["location", "propertyType", "budget"];
+  const confidenceFields = Array.isArray(confidenceResult?.factors) ? confidenceResult.factors : [];
+
+  const missingField = importantFields.find((field) => {
+    const match = confidenceFields.find((entry) => entry.name === field);
+    return !match || Number(match.score) < 75;
+  });
+
+  return missingField || null;
+}
+
+function requestClarificationForUncertainPreferences(preferences = {}, field = null) {
+  const text = String(preferences.rawInput || "").toLowerCase();
+
+  if (field === "location" || text.includes("north") || text.includes("somewhere")) {
+    return "Do you mean Yishun, Woodlands, Sembawang or another area?";
+  }
+
+  if (field === "propertyType") {
+    return "Would you prefer a condo, HDB or landed home?";
+  }
+
+  if (field === "budget") {
+    return "What is your maximum budget?";
+  }
+
+  return "Could you share a bit more detail about the area or budget so I can narrow it down?";
+}
+
+function setAssistantTypingState(isLoading = false) {
+  const typingIndicator = document.getElementById("assistant-typing");
+  const messagesContainer = document.getElementById("assistant-messages");
+  const emptyState = document.getElementById("assistant-empty-state");
+
+  if (typingIndicator) {
+    typingIndicator.hidden = !isLoading;
+    typingIndicator.setAttribute("aria-hidden", String(!isLoading));
+  }
+
+  if (emptyState && isLoading) {
+    emptyState.hidden = true;
+  }
+
+  updateAssistantState({ loadingState: isLoading });
+
+  if (isLoading && messagesContainer) {
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }
+}
+
+function renderAssistantConversation(messages = []) {
+  const container = document.getElementById("assistant-messages");
+  const emptyState = document.getElementById("assistant-empty-state");
+
+  if (!container) {
+    return;
+  }
+
+  const safeMessages = Array.isArray(messages) ? messages : [];
+  container.querySelectorAll(".assistant-message-wrapper").forEach((element) => element.remove());
+  updateAssistantPromptVisibility();
+
+  if (!safeMessages.length) {
+    if (emptyState) {
+      emptyState.hidden = false;
+    }
+    return;
+  }
+
+  if (emptyState) {
+    emptyState.hidden = true;
+  }
+
+  safeMessages.forEach((message) => {
+    const wrapper = document.createElement("div");
+    wrapper.className = "assistant-message-wrapper";
+
+    const bubble = document.createElement("div");
+    bubble.className = `assistant-message assistant-message--${message.role === "user" ? "user" : "assistant"}`;
+    bubble.textContent = message.content || "";
+
+    const time = document.createElement("p");
+    time.className = "assistant-message__time";
+    time.textContent = message.timestamp ? new Date(message.timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "";
+
+    wrapper.appendChild(bubble);
+    wrapper.appendChild(time);
+    container.appendChild(wrapper);
+  });
+
+  container.scrollTop = container.scrollHeight;
+}
+
+function addAssistantMessage(content, timestamp = new Date().toISOString()) {
+  const message = {
+    role: "assistant",
+    content,
+    timestamp
+  };
+
+  assistantState.conversationHistory = [...assistantState.conversationHistory, message];
+  renderAssistantConversation(assistantState.conversationHistory);
+  persistAssistantSession();
+  return message;
+}
+
+function addUserMessage(content, timestamp = new Date().toISOString()) {
+  const message = {
+    role: "user",
+    content,
+    timestamp
+  };
+
+  assistantState.conversationHistory = [...assistantState.conversationHistory, message];
+  renderAssistantConversation(assistantState.conversationHistory);
+  persistAssistantSession();
+  return message;
+}
+
+function parseUserPreferences(input = "") {
+  const text = String(input || "").toLowerCase().trim();
+  const preferences = {
+    rawInput: input,
+    location: null,
+    propertyType: null,
+    bedrooms: null,
+    bathrooms: null,
+    budget: null,
+    floorArea: null,
+    facilities: [],
+    nearbyAmenities: [],
+    tenure: null,
+    developer: null,
+    propertyAge: null
+  };
+
+  const locationPatterns = [
+    { value: "Yishun", keywords: ["yishun"] },
+    { value: "Tampines", keywords: ["tampines"] },
+    { value: "Bishan", keywords: ["bishan"] },
+    { value: "Woodlands", keywords: ["woodlands"] },
+    { value: "Sembawang", keywords: ["sembawang"] },
+    { value: "Jurong", keywords: ["jurong"] },
+    { value: "Orchard", keywords: ["orchard"] },
+    { value: "Bukit Timah", keywords: ["bukit timah", "bukit-timah"] }
+  ];
+
+  const typeMap = {
+    condo: "Condo",
+    condominium: "Condo",
+    hdb: "HDB",
+    flat: "HDB",
+    landed: "Landed",
+    terrace: "Landed",
+    house: "Landed"
+  };
+
+  const facilityMap = {
+    "swimming pool": "Swimming Pool",
+    swimming: "Swimming Pool",
+    pool: "Swimming Pool",
+    gym: "Gym",
+    bbq: "BBQ Pit",
+    tennis: "Tennis Court",
+    parking: "Parking",
+    security: "Security"
+  };
+
+  const amenityMap = {
+    mrt: "MRT",
+    station: "MRT",
+    school: "School",
+    schools: "School",
+    mall: "Shopping Mall",
+    malls: "Shopping Mall",
+    shopping: "Shopping Mall",
+    park: "Park"
+  };
+
+  locationPatterns.forEach((pattern) => {
+    if (pattern.keywords.some((keyword) => text.includes(keyword))) {
+      preferences.location = pattern.value;
+    }
+  });
+
+  Object.entries(typeMap).forEach(([keyword, value]) => {
+    if (text.includes(keyword)) {
+      preferences.propertyType = value;
+    }
+  });
+
+  const bedroomMatch = text.match(/(\d+)\s*(room|rooms|bedroom|bedrooms|br)/i);
+  if (bedroomMatch) {
+    preferences.bedrooms = Number(bedroomMatch[1]);
+  }
+
+  const bathroomMatch = text.match(/(\d+)\s*(bathroom|bathrooms|bath|ba)/i);
+  if (bathroomMatch) {
+    preferences.bathrooms = Number(bathroomMatch[1]);
+  }
+
+  const budgetMatch = text.match(/(?:under|below|up to|less than|budget|max(?:imum)?|price|cost)\s*(?:of\s*)?\$?([0-9,.]+)\s*(million|m|k)?/i);
+  if (budgetMatch) {
+    let budgetValue = Number(budgetMatch[1].replace(/,/g, ""));
+    const unit = (budgetMatch[2] || "").toLowerCase();
+    if (unit === "million" || unit === "m") {
+      budgetValue *= 1000000;
+    } else if (unit === "k") {
+      budgetValue *= 1000;
+    }
+    preferences.budget = budgetValue;
+  }
+
+  const floorAreaMatch = text.match(/(\d+)\s*(sqft|sq ft|sqm|m2|square feet|square metres|square meter|square meters)/i);
+  if (floorAreaMatch) {
+    preferences.floorArea = {
+      value: Number(floorAreaMatch[1]),
+      unit: floorAreaMatch[2].toLowerCase()
+    };
+  }
+
+  Object.entries(facilityMap).forEach(([keyword, value]) => {
+    if (text.includes(keyword)) {
+      preferences.facilities.push(value);
+    }
+  });
+
+  Object.entries(amenityMap).forEach(([keyword, value]) => {
+    if (text.includes(keyword)) {
+      preferences.nearbyAmenities.push(value);
+    }
+  });
+
+  if (/freehold/i.test(text)) {
+    preferences.tenure = "Freehold";
+  } else if (/leasehold/i.test(text)) {
+    preferences.tenure = "Leasehold";
+  }
+
+  const developerMatch = text.match(/developer\s+([a-z0-9 .&-]+)/i) || text.match(/by\s+([a-z0-9 .&-]+)/i);
+  if (developerMatch) {
+    preferences.developer = developerMatch[1].trim();
+  }
+
+  const propertyAgeMatch = text.match(/(\d+)\s*(year|years|yr|yrs)\s*(old|ago)/i);
+  if (propertyAgeMatch) {
+    preferences.propertyAge = Number(propertyAgeMatch[1]);
+  }
+
+  return preferences;
+}
+
+function evaluatePreferenceConfidence(preferences = {}) {
+  const fields = [
+    { field: "location", value: preferences.location, confidence: preferences.location ? 0.95 : 0.2 },
+    { field: "propertyType", value: preferences.propertyType, confidence: preferences.propertyType ? 0.95 : 0.2 },
+    { field: "bedrooms", value: preferences.bedrooms, confidence: preferences.bedrooms ? 0.9 : 0.2 },
+    { field: "bathrooms", value: preferences.bathrooms, confidence: preferences.bathrooms ? 0.85 : 0.2 },
+    { field: "budget", value: preferences.budget, confidence: preferences.budget ? 0.95 : 0.2 },
+    { field: "floorArea", value: preferences.floorArea, confidence: preferences.floorArea ? 0.8 : 0.2 },
+    { field: "facilities", value: preferences.facilities?.length ? preferences.facilities : null, confidence: preferences.facilities?.length ? 0.85 : 0.2 },
+    { field: "nearbyAmenities", value: preferences.nearbyAmenities?.length ? preferences.nearbyAmenities : null, confidence: preferences.nearbyAmenities?.length ? 0.85 : 0.2 },
+    { field: "tenure", value: preferences.tenure, confidence: preferences.tenure ? 0.8 : 0.2 },
+    { field: "developer", value: preferences.developer, confidence: preferences.developer ? 0.75 : 0.2 },
+    { field: "propertyAge", value: preferences.propertyAge, confidence: preferences.propertyAge ? 0.75 : 0.2 }
+  ];
+
+  const extractedFields = fields.filter((entry) => {
+    const value = entry.value;
+    return value !== null && value !== undefined && value !== "" && (!Array.isArray(value) || value.length > 0);
+  });
+  const completeness = fields.length ? extractedFields.length / fields.length : 0;
+
+  const ambiguityPenalty = preferences.location ? 0 : 0.1;
+  const missingCorePenalty = [preferences.location, preferences.propertyType, preferences.budget].filter(Boolean).length < 3 ? 0.1 : 0;
+  const averageConfidence = extractedFields.length
+    ? extractedFields.reduce((sum, entry) => sum + entry.confidence, 0) / extractedFields.length
+    : 0;
+  const adjustedScore = Math.max(0, Math.min(1, completeness * 0.6 + averageConfidence * 0.4 - ambiguityPenalty - missingCorePenalty));
+
+  return {
+    fields,
+    completeness,
+    ambiguityPenalty,
+    missingCorePenalty,
+    averageConfidence,
+    adjustedScore
+  };
+}
+
+function calculateAssistantConfidence(preferences = {}) {
+  const confidenceResult = evaluatePreferenceConfidence(preferences);
+  const percentage = Math.round(confidenceResult.adjustedScore * 100);
+  const explanation = generateAssistantConfidenceExplanation({
+    percentage,
+    completeness: confidenceResult.completeness,
+    averageConfidence: confidenceResult.averageConfidence,
+    extractedCount: confidenceResult.fields.filter((entry) => {
+      const value = entry.value;
+      return value !== null && value !== undefined && value !== "" && (!Array.isArray(value) || value.length > 0);
+    }).length,
+    totalFields: confidenceResult.fields.length
+  });
+
+  let status = "high";
+  if (percentage < 70) {
+    status = "low";
+  } else if (percentage < 85) {
+    status = "medium";
+  }
+
+  return {
+    percentage,
+    status,
+    explanation,
+    completeness: confidenceResult.completeness,
+    averageConfidence: confidenceResult.averageConfidence,
+    ambiguityPenalty: confidenceResult.ambiguityPenalty,
+    missingCorePenalty: confidenceResult.missingCorePenalty,
+    factors: confidenceResult.fields.map((entry) => ({
+      name: entry.field,
+      score: Math.round(entry.confidence * 100),
+      detail: entry.value ? `${entry.field} was extracted.` : `${entry.field} is still missing.`
+    }))
+  };
+}
+
+function generateAssistantConfidenceExplanation(confidenceResult = {}) {
+  const percentage = Number(confidenceResult.percentage ?? 0);
+  const extractedCount = Number(confidenceResult.extractedCount ?? 0);
+  const totalFields = Number(confidenceResult.totalFields ?? 0);
+
+  if (!totalFields) {
+    return "The assistant needs a bit more detail before it can judge the request confidently.";
+  }
+
+  if (percentage >= 85) {
+    return `High confidence because the assistant extracted ${extractedCount} out of ${totalFields} preference signals clearly.`;
+  }
+
+  if (percentage >= 70) {
+    return `Medium confidence because the main request is understood, but a few preference details are still incomplete.`;
+  }
+
+  return `Lower confidence because several key preferences are missing or unclear, so the assistant may need a follow-up.`;
+}
+
+function renderAssistantPreferenceSummary(preferences = null, confidenceResult = null) {
+  const summary = ensureAssistantSummaryUI();
+
+  if (!summary) {
+    return;
+  }
+
+  const hasPreferences = preferences && Object.values(preferences).some((value) => {
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+
+    if (typeof value === "object" && value !== null) {
+      return Boolean(Object.keys(value).length);
+    }
+
+    return Boolean(value);
+  });
+
+  if (!hasPreferences && !confidenceResult?.percentage) {
+    summary.hidden = true;
+    summary.innerHTML = "";
+    return;
+  }
+
+  const chips = [];
+  const chipDefinitions = [
+    { label: "Location", value: preferences?.location },
+    { label: "Type", value: preferences?.propertyType },
+    { label: "Bedrooms", value: preferences?.bedrooms },
+    { label: "Budget", value: preferences?.budget ? `$${preferences.budget.toLocaleString()}` : null },
+    { label: "Floor Area", value: preferences?.floorArea ? `${preferences.floorArea.value} ${preferences.floorArea.unit}` : null },
+    { label: "Facilities", value: Array.isArray(preferences?.facilities) ? preferences.facilities.join(", ") : null },
+    { label: "Nearby", value: Array.isArray(preferences?.nearbyAmenities) ? preferences.nearbyAmenities.join(", ") : null },
+    { label: "Tenure", value: preferences?.tenure },
+    { label: "Developer", value: preferences?.developer },
+    { label: "Age", value: preferences?.propertyAge ? `${preferences.propertyAge} years` : null }
+  ];
+
+  chipDefinitions.forEach((chip) => {
+    if (chip.value) {
+      chips.push(`<span class="assistant-panel__chip">${chip.label}: ${chip.value}</span>`);
+    }
+  });
+
+  summary.innerHTML = `
+    <div class="assistant-panel__confidence">
+      <p class="assistant-panel__confidence-label">Assistant Confidence Score</p>
+      <p class="assistant-panel__confidence-score">${confidenceResult?.percentage ?? 0}%</p>
+      <p class="assistant-panel__confidence-explanation">${confidenceResult?.explanation || "The assistant is reviewing your request."}</p>
+    </div>
+    <div class="assistant-panel__chips">${chips.join("")}</div>
+  `;
+  summary.hidden = false;
+}
+
+function updateAssistantState(patch = {}) {
+  Object.assign(assistantState, patch);
+  if (patch.assistantOpen !== undefined) {
+    assistantState.panelOpen = Boolean(patch.assistantOpen);
+  }
+  if (patch.panelOpen !== undefined) {
+    assistantState.assistantOpen = Boolean(patch.panelOpen);
+  }
+  persistAssistantSession();
+  return assistantState;
+}
+
+function persistAssistantSession() {
+  try {
+    localStorage.setItem(STORAGE_KEYS.assistantSession, JSON.stringify(assistantState));
+  } catch (error) {
+    // Ignore persistence failures silently.
+  }
+}
+
+function restoreAssistantSession() {
+  try {
+    const rawState = localStorage.getItem(STORAGE_KEYS.assistantSession);
+    if (!rawState) {
+      return null;
+    }
+
+    const parsedState = JSON.parse(rawState);
+    if (!parsedState || typeof parsedState !== "object") {
+      return null;
+    }
+
+    const restoredAssistantOpen = parsedState.assistantOpen ?? parsedState.panelOpen ?? false;
+    const restoredConversationHistory = Array.isArray(parsedState.conversationHistory) ? parsedState.conversationHistory : [];
+    const restoredRecommendations = Array.isArray(parsedState.currentRecommendations) ? parsedState.currentRecommendations : [];
+    const restoredFactors = Array.isArray(parsedState.assistantConfidenceFactors) ? parsedState.assistantConfidenceFactors : [];
+
+    Object.assign(assistantState, {
+      assistantOpen: Boolean(restoredAssistantOpen),
+      panelOpen: Boolean(restoredAssistantOpen),
+      conversationHistory: restoredConversationHistory,
+      currentPreferences: parsedState.currentPreferences ?? parsedState.preferences ?? null,
+      currentRecommendations: restoredRecommendations,
+      assistantConfidenceScore: parsedState.assistantConfidenceScore ?? parsedState.confidenceScore ?? null,
+      assistantConfidenceStatus: parsedState.assistantConfidenceStatus ?? null,
+      assistantConfidenceExplanation: parsedState.assistantConfidenceExplanation ?? null,
+      assistantConfidenceFactors: restoredFactors,
+      activeChatSessionId: parsedState.activeChatSessionId ?? null,
+      isAssistantLoading: Boolean(parsedState.isAssistantLoading ?? parsedState.loadingState),
+      pendingClarificationField: parsedState.pendingClarificationField ?? null,
+      pendingClarificationContext: parsedState.pendingClarificationContext ?? null,
+      selectedPropertyId: parsedState.selectedPropertyId ?? null,
+      lastSearchContext: parsedState.lastSearchContext ?? {},
+      preferences: parsedState.currentPreferences ?? parsedState.preferences ?? null,
+      loadingState: Boolean(parsedState.isAssistantLoading ?? parsedState.loadingState),
+      confidenceScore: parsedState.assistantConfidenceScore ?? parsedState.confidenceScore ?? null
+    });
+
+    return assistantState;
+  } catch (error) {
+    return null;
+  }
+}
+
+function bindMenuToggle() {
+  const toggle = document.querySelector("[data-menu-toggle]");
+  const nav = document.getElementById("site-nav");
+  if (!toggle || !nav) {
+    return;
+  }
+
+  toggle.addEventListener("click", () => {
+    const isOpen = nav.classList.toggle("is-open");
+    toggle.setAttribute("aria-expanded", String(isOpen));
+  });
+}
+
+function getFallbackPayload(url) {
+  const parsedUrl = new URL(url, window.location.href);
+  const pathname = parsedUrl.pathname;
+  const searchParams = parsedUrl.searchParams;
+
+  if (pathname.includes("/api/properties") && searchParams.get("featured") === "true") {
+    return {
+      success: true,
+      message: "Featured properties loaded",
+      data: {
+        properties: DEMO_PROPERTIES
+      }
+    };
+  }
+
+  if (pathname.includes("/api/properties/related")) {
+    return {
+      success: true,
+      message: "Related properties loaded",
+      data: {
+        properties: DEMO_PROPERTIES.slice(0, 2)
+      }
+    };
+  }
+
+  if (pathname.includes("/api/properties/")) {
+    const propertyId = pathname.split("/").filter(Boolean).pop();
+    const match = DEMO_PROPERTIES.find((property) => property.id === propertyId);
+    if (match) {
+      return {
+        success: true,
+        message: "Property details loaded",
+        data: {
+          property: match
+        }
+      };
+    }
+
+    return {
+      success: false,
+      message: "Property not found",
+      error: {
+        type: "not_found",
+        details: ["Property not found"]
+      }
+    };
+  }
+
+  if (pathname.includes("/api/properties") && pathname.includes("/related")) {
+    return {
+      success: true,
+      message: "Related properties loaded",
+      data: {
+        properties: DEMO_PROPERTIES.slice(0, 2)
+      }
+    };
+  }
+
+  if (pathname.includes("/api/properties")) {
+    const type = searchParams.get("propertyType") || "";
+    const filtered = DEMO_PROPERTIES.filter((property) => {
+      if (type && property.propertyType !== type) {
+        return false;
+      }
+      return true;
+    });
+    return {
+      success: true,
+      message: "Properties found",
+      data: {
+        properties: filtered,
+        pagination: {
+          page: 1,
+          limit: 12,
+          totalItems: filtered.length,
+          totalPages: 1
+        }
+      }
+    };
+  }
+
+  if (pathname.includes("/api/moving/services")) {
+    return {
+      success: true,
+      message: "Moving services loaded",
+      data: {
+        services: DEMO_MOVING_SERVICES
+      }
+    };
+  }
+
+  if (pathname.includes("/api/properties/")) {
+    const propertyId = pathname.split("/").filter(Boolean).pop();
+    const match = DEMO_PROPERTIES.find((property) => property.id === propertyId);
+    if (match) {
+      return {
+        success: true,
+        message: "Property details loaded",
+        data: {
+          property: match
+        }
+      };
+    }
+
+    return {
+      success: false,
+      message: "Property not found",
+      error: {
+        type: "not_found",
+        details: ["Property not found"]
+      }
+    };
+  }
+
+  return {
+    success: false,
+    message: "Unable to load content right now.",
+    error: {
+      type: "api_error",
+      details: []
+    }
+  };
+}
+
+async function fetchJson(url, options = {}) {
+  try {
+    const response = await fetch(url, options);
+    if (!response.ok) {
+      return getFallbackPayload(url);
+    }
+
+    return response.json();
+  } catch (error) {
+    return getFallbackPayload(url);
+  }
+}
+
+function getFavourites() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.favourites);
+    return raw ? JSON.parse(raw) : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function saveFavourites() {
+  localStorage.setItem(STORAGE_KEYS.favourites, JSON.stringify(state.favourites));
+}
+
+function isFavourite(propertyId) {
+  return state.favourites.some((item) => item.id === propertyId);
+}
+
+function toggleFavourite(property) {
+  const exists = state.favourites.find((item) => item.id === property.id);
+  if (exists) {
+    state.favourites = state.favourites.filter((item) => item.id !== property.id);
+  } else {
+    state.favourites = [
+      {
+        ...property,
+        favouriteAddedAt: new Date().toISOString()
+      },
+      ...state.favourites
+    ];
+  }
+
+  saveFavourites();
+  return state.favourites;
+}
+
+function renderPropertyCard(property, container) {
+  if (!container) {
+    return;
+  }
+
+  const image = Array.isArray(property.images) && property.images.length ? property.images[0] : "https://placehold.co/600x400?text=MoveEase";
+  const card = document.createElement("article");
+  card.className = "property-card card";
+  card.innerHTML = `
+    <img class="property-card__image" src="${image}" alt="${property.title}" loading="lazy" />
+    <h3 class="property-card__title">${property.title}</h3>
+    <p class="property-card__meta">${property.location}</p>
+    <p class="property-card__price">${formatCurrency(property.price)}</p>
+    <div class="property-card__details">
+      <span class="tag">${property.propertyType || "Property"}</span>
+      <span class="tag">${property.bedrooms || 0} bd</span>
+      <span class="tag">${property.bathrooms || 0} ba</span>
+      <span class="tag">${formatArea(property.floorArea || 0)}</span>
+    </div>
+    <div class="property-card__actions">
+      <button class="button button--outline favourite-button ${isFavourite(property.id) ? "active" : ""}" type="button" data-favourite-id="${property.id}">${isFavourite(property.id) ? "Saved" : "Favourite"}</button>
+      <a class="button button--primary" href="property.html?id=${property.id}">View Details</a>
+    </div>
+  `;
+
+  container.appendChild(card);
+}
+
+function renderMovingServiceCard(service, container) {
+  if (!container) {
+    return;
+  }
+
+  const image = service.image || "https://placehold.co/600x400?text=Moving";
+  const card = document.createElement("article");
+  card.className = "service-card card";
+  card.innerHTML = `
+    <img class="service-card__image" src="${image}" alt="${service.title}" loading="lazy" />
+    <h3 class="service-card__title">${service.title}</h3>
+    <p class="service-card__meta">${service.category || "Service"}</p>
+    <p>${service.description}</p>
+    <p class="property-card__price">${formatCurrency(service.price)}</p>
+    <div class="property-card__actions">
+      <a class="button button--primary" href="moving.html">${service.ctaLabel || "Learn more"}</a>
+    </div>
+  `;
+
+  container.appendChild(card);
+}
+
+function renderNavigation(container) {
+  if (!container) {
+    return;
+  }
+
+  const links = [
+    { label: "Home", href: "index.html" },
+    { label: "Search Properties", href: "search.html" },
+    { label: "Mortgage Calculator", href: "mortgage.html" },
+    { label: "Moving Services", href: "moving.html" },
+    { label: "Favourites", href: "favourites.html" }
+  ];
+
+  const currentPage = getPageName();
+  const currentPath = window.location.pathname.replace(/\/$/, "");
+  const markup = links
+    .map((link) => {
+      const linkPath = new URL(link.href, window.location.href).pathname.replace(/\/$/, "");
+      const isActive = linkPath === currentPath || (currentPage === "home" && linkPath.endsWith("/index.html"));
+      return `<a href="${link.href}" class="${isActive ? "active" : ""}">${link.label}</a>`;
+    })
+    .join("");
+
+  container.innerHTML = markup;
+}
+
+function renderFooter(container) {
+  if (!container) {
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="container">
+      <div>
+        <h3>Quick links</h3>
+        <p><a href="index.html">Home</a></p>
+        <p><a href="search.html">Search</a></p>
+        <p><a href="mortgage.html">Mortgage</a></p>
+      </div>
+      <div>
+        <h3>Contact</h3>
+        <p>hello@moveease.sg</p>
+        <p>+65 6123 4567</p>
+      </div>
+      <div>
+        <h3>About</h3>
+        <p>Helping Singaporeans move with ease.</p>
+      </div>
+    </div>
+  `;
+}
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat("en-SG", {
+    style: "currency",
+    currency: "SGD",
+    maximumFractionDigits: 0
+  }).format(Number(value || 0));
+}
+
+function formatArea(value) {
+  return `${Number(value || 0).toLocaleString()} sqft`;
+}
+
+function formatPrice(value) {
+  return formatCurrency(value);
+}
+
+function formatDate(value) {
+  if (!value) {
+    return "";
+  }
+  return new Date(value).toLocaleDateString("en-SG");
+}
+
+function showLoading(container) {
+  if (!container) {
+    return;
+  }
+  container.hidden = false;
+  container.textContent = "Loading content...";
+}
+
+function hideLoading(container) {
+  if (!container) {
+    return;
+  }
+  container.hidden = true;
+  container.textContent = "";
+}
+
+function showError(message, type = "error") {
+  const errorElement = document.getElementById("error-state");
+  if (!errorElement) {
+    return;
+  }
+  errorElement.hidden = false;
+  errorElement.dataset.type = type;
+  errorElement.textContent = message;
+}
+
+function clearError() {
+  const errorElement = document.getElementById("error-state");
+  if (!errorElement) {
+    return;
+  }
+  errorElement.hidden = true;
+  errorElement.textContent = "";
+}
+
+function parseSearchParams(queryString = window.location.search) {
+  const params = new URLSearchParams(queryString);
+  return {
+    location: params.get("location") || "",
+    propertyType: params.get("propertyType") || "",
+    minPrice: params.get("minPrice") || "",
+    maxPrice: params.get("maxPrice") || "",
+    bedrooms: params.get("bedrooms") || "",
+    bathrooms: params.get("bathrooms") || "",
+    sort: params.get("sort") || "newest",
+    page: Number(params.get("page") || 1)
+  };
+}
+
+function updateSearchParams(params = {}) {
+  const currentParams = new URLSearchParams(window.location.search);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === "" || value == null) {
+      currentParams.delete(key);
+    } else {
+      currentParams.set(key, String(value));
+    }
+  });
+  return currentParams.toString() ? `?${currentParams.toString()}` : "";
+}
+
+function validateSearchFilters(filters) {
+  const errors = [];
+  const minPrice = Number(filters.minPrice || 0);
+  const maxPrice = Number(filters.maxPrice || 0);
+
+  if (filters.minPrice && filters.maxPrice && minPrice > maxPrice) {
+    errors.push("Minimum price cannot be greater than maximum price.");
+  }
+
+  if (filters.bedrooms && Number(filters.bedrooms) < 1) {
+    errors.push("Bedrooms must be at least 1.");
+  }
+
+  if (filters.bathrooms && Number(filters.bathrooms) < 1) {
+    errors.push("Bathrooms must be at least 1.");
+  }
+
+  return errors;
+}
+
+function sortProperties(properties, sortBy) {
+  const list = [...properties];
+  switch (sortBy) {
+    case "price_asc":
+      return list.sort((a, b) => a.price - b.price);
+    case "price_desc":
+      return list.sort((a, b) => b.price - a.price);
+    case "area_desc":
+      return list.sort((a, b) => (b.floorArea || 0) - (a.floorArea || 0));
+    case "area_asc":
+      return list.sort((a, b) => (a.floorArea || 0) - (b.floorArea || 0));
+    default:
+      return list.sort((a, b) => new Date(b.postedDate || 0) - new Date(a.postedDate || 0));
+  }
+}
+
+function renderPagination(totalPages, currentPage) {
+  const pagination = document.getElementById("pagination-controls");
+  if (!pagination) {
+    return;
+  }
+
+  if (totalPages <= 1) {
+    pagination.innerHTML = "";
+    return;
+  }
+
+  const buttons = [];
+  for (let page = 1; page <= totalPages; page += 1) {
+    buttons.push(`<button type="button" class="${page === currentPage ? "active" : ""}" data-page="${page}">${page}</button>`);
+  }
+  pagination.innerHTML = buttons.join("");
+}
+
+function changePage(pageNumber) {
+  const filters = { ...state.currentSearchFilters, page: pageNumber };
+  state.currentPage = pageNumber;
+  const query = updateSearchParams(filters);
+  window.history.replaceState({}, "", `${window.location.pathname}${query}`);
+  initSearchPage();
+}
+
+function attachFavouriteHandlers(container) {
+  container.querySelectorAll("[data-favourite-id]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const propertyId = button.getAttribute("data-favourite-id");
+      const property = state.searchResults.find((item) => item.id === propertyId) || state.selectedProperty;
+      if (!property) {
+        return;
+      }
+      toggleFavourite(property);
+      button.classList.toggle("active", isFavourite(property.id));
+      button.textContent = isFavourite(property.id) ? "Saved" : "Favourite";
+    });
+  });
+}
+
+async function initHomePage() {
+  const container = document.getElementById("featured-properties");
+  const loading = document.getElementById("loading-state");
+  const error = document.getElementById("error-state");
+
+  if (!container) {
+    return;
+  }
+
+  showLoading(loading);
+  clearError();
+
+  const form = document.getElementById("home-search-form");
+  if (form) {
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const formData = new FormData(form);
+      const values = Object.fromEntries(formData.entries());
+      const query = new URLSearchParams({
+        location: values.location || "",
+        propertyType: values.propertyType || "",
+        minPrice: values.minPrice || "",
+        maxPrice: values.maxPrice || "",
+        bedrooms: values.bedrooms || "",
+        bathrooms: values.bathrooms || ""
+      });
+      window.location.href = `search.html?${query.toString()}`;
+    });
+  }
+
+  try {
+    const payload = await fetchJson(`${API_BASE_URL}${API_ENDPOINTS.featuredProperties}`);
+    const properties = payload?.data?.properties || [];
+    container.innerHTML = "";
+    if (!properties.length) {
+      container.innerHTML = '<p class="status-message">No featured homes are available right now.</p>';
+      hideLoading(loading);
+      return;
+    }
+
+    properties.forEach((property) => renderPropertyCard(property, container));
+    attachFavouriteHandlers(container);
+    hideLoading(loading);
+  } catch (catchError) {
+    hideLoading(loading);
+    showError(catchError.message || "Unable to load featured homes.", "api_error");
+  }
+
+  try {
+    const preview = document.getElementById("moving-preview");
+    const payload = await fetchJson(`${API_BASE_URL}${API_ENDPOINTS.movingServices}`);
+    const services = payload?.data?.services || [];
+    if (preview) {
+      preview.innerHTML = "";
+      services.slice(0, 3).forEach((service) => renderMovingServiceCard(service, preview));
+    }
+  } catch (catchError) {
+    if (error) {
+      error.textContent = catchError.message || "Unable to load moving services.";
+      error.hidden = false;
+    }
+  }
+}
+
+async function initSearchPage() {
+  const container = document.getElementById("search-results");
+  const loading = document.getElementById("loading-state");
+  const form = document.getElementById("search-form");
+  if (!container || !form) {
+    return;
+  }
+
+  const params = parseSearchParams();
+  state.currentSearchFilters = { ...DEFAULT_FILTERS, ...params };
+  state.currentPage = Number(params.page || 1);
+
+  const filters = state.currentSearchFilters;
+  form.elements.location.value = filters.location || "";
+  form.elements.propertyType.value = filters.propertyType || "";
+  form.elements.minPrice.value = filters.minPrice || "";
+  form.elements.maxPrice.value = filters.maxPrice || "";
+  form.elements.bedrooms.value = filters.bedrooms || "";
+  form.elements.bathrooms.value = filters.bathrooms || "";
+  form.elements.sort.value = filters.sort || "newest";
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const formData = new FormData(form);
+    const values = Object.fromEntries(formData.entries());
+    const errors = validateSearchFilters(values);
+    if (errors.length) {
+      showError(errors[0], "validation_error");
+      return;
+    }
+
+    state.currentSearchFilters = { ...DEFAULT_FILTERS, ...values, page: 1 };
+    const query = updateSearchParams(state.currentSearchFilters);
+    window.history.replaceState({}, "", `${window.location.pathname}${query}`);
+    await loadSearchResults();
+  });
+
+  await loadSearchResults();
+}
+
+async function loadSearchResults() {
+  const container = document.getElementById("search-results");
+  const loading = document.getElementById("loading-state");
+  const pagination = document.getElementById("pagination-controls");
+  if (!container) {
+    return;
+  }
+
+  showLoading(loading);
+  clearError();
+
+  const queryParams = new URLSearchParams();
+  Object.entries(state.currentSearchFilters).forEach(([key, value]) => {
+    if (value && value !== "newest") {
+      queryParams.set(key, String(value));
+    }
+  });
+  queryParams.set("page", String(state.currentPage));
+  queryParams.set("limit", String(PAGE_CONFIG.pageSize));
+
+  try {
+    const payload = await fetchJson(`${API_BASE_URL}${API_ENDPOINTS.searchProperties}?${queryParams.toString()}`);
+    const properties = payload?.data?.properties || [];
+    const paginationData = payload?.data?.pagination || {};
+    state.searchResults = properties;
+    container.innerHTML = "";
+
+    if (!properties.length) {
+      container.innerHTML = '<p class="status-message">No properties matched your current filters.</p>';
+      if (pagination) {
+        pagination.innerHTML = "";
+      }
+      hideLoading(loading);
+      return;
+    }
+
+    const sorted = sortProperties(properties, state.currentSearchFilters.sort || "newest");
+    sorted.forEach((property) => renderPropertyCard(property, container));
+    attachFavouriteHandlers(container);
+    renderPagination(paginationData.totalPages || 1, state.currentPage);
+    hideLoading(loading);
+  } catch (catchError) {
+    hideLoading(loading);
+    showError(catchError.message || "Unable to load search results.", "api_error");
+  }
+}
+
+async function initPropertyPage() {
+  const params = new URLSearchParams(window.location.search);
+  const propertyId = params.get("id");
+  const loading = document.getElementById("loading-state");
+  const image = document.getElementById("property-image");
+  const title = document.getElementById("property-title");
+  const location = document.getElementById("property-location");
+  const description = document.getElementById("property-description");
+  const amenitiesList = document.getElementById("property-amenities");
+  const statsGrid = document.getElementById("property-stats");
+  const favouriteButton = document.getElementById("property-favourite-button");
+  const relatedContainer = document.getElementById("related-properties");
+
+  if (!propertyId) {
+    showError("This page needs a property id.", "validation_error");
+    return;
+  }
+
+  showLoading(loading);
+  clearError();
+
+  try {
+    const payload = await fetchJson(`${API_BASE_URL}${API_ENDPOINTS.propertyDetails(propertyId)}`);
+    const property = payload?.data?.property;
+    if (!property) {
+      throw new Error("Property not found.");
+    }
+
+    state.selectedProperty = property;
+    if (title) {
+      title.textContent = property.title;
+    }
+    if (location) {
+      location.textContent = property.location;
+    }
+    if (description) {
+      description.textContent = property.description || "A well-presented home with plenty of comfort.";
+    }
+    if (image) {
+      image.src = Array.isArray(property.images) && property.images.length ? property.images[0] : "https://placehold.co/800x500?text=MoveEase";
+      image.alt = property.title;
+    }
+
+    if (statsGrid) {
+      statsGrid.innerHTML = `
+        <div class="stats-item"><strong>${formatCurrency(property.price)}</strong><p>Price</p></div>
+        <div class="stats-item"><strong>${property.bedrooms || 0}</strong><p>Bedrooms</p></div>
+        <div class="stats-item"><strong>${property.bathrooms || 0}</strong><p>Bathrooms</p></div>
+        <div class="stats-item"><strong>${formatArea(property.floorArea || 0)}</strong><p>Floor area</p></div>
+      `;
+    }
+
+    if (amenitiesList) {
+      amenitiesList.innerHTML = "";
+      (property.amenities || []).forEach((amenity) => {
+        const item = document.createElement("li");
+        item.textContent = amenity;
+        amenitiesList.appendChild(item);
+      });
+    }
+
+    if (favouriteButton) {
+      favouriteButton.classList.toggle("active", isFavourite(property.id));
+      favouriteButton.textContent = isFavourite(property.id) ? "Saved" : "Save";
+      favouriteButton.addEventListener("click", () => {
+        toggleFavourite(property);
+        favouriteButton.classList.toggle("active", isFavourite(property.id));
+        favouriteButton.textContent = isFavourite(property.id) ? "Saved" : "Save";
+      });
+    }
+
+    if (relatedContainer) {
+      const relatedPayload = await fetchJson(`${API_BASE_URL}${API_ENDPOINTS.relatedProperties}?type=${encodeURIComponent(property.propertyType || "")}&limit=${PAGE_CONFIG.relatedLimit}`);
+      const relatedProperties = relatedPayload?.data?.properties || [];
+      relatedContainer.innerHTML = "";
+      relatedProperties.forEach((relatedProperty) => renderPropertyCard(relatedProperty, relatedContainer));
+      attachFavouriteHandlers(relatedContainer);
+    }
+
+    hideLoading(loading);
+  } catch (catchError) {
+    hideLoading(loading);
+    showError(catchError.message || "Unable to load this property.", "api_error");
+  }
+}
+
+function initMortgagePage() {
+  const form = document.getElementById("mortgage-form");
+  const error = document.getElementById("mortgage-error");
+  const summaryFields = {
+    principal: document.getElementById("summary-principal"),
+    monthly: document.getElementById("summary-monthly"),
+    total: document.getElementById("summary-total"),
+    interest: document.getElementById("summary-interest")
+  };
+
+  if (!form) {
+    return;
+  }
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const values = Object.fromEntries(new FormData(form).entries());
+    const validation = validateMortgageInputs(values);
+    if (!validation.valid) {
+      if (error) {
+        error.hidden = false;
+        error.textContent = validation.message;
+      }
+      return;
+    }
+
+    if (error) {
+      error.hidden = true;
+      error.textContent = "";
+    }
+
+    const result = calculateMortgage(values);
+    renderMortgageResults(result, summaryFields);
+  });
+
+  form.addEventListener("reset", () => {
+    Object.values(summaryFields).forEach((field) => {
+      if (field) {
+        field.textContent = "-";
+      }
+    });
+    if (error) {
+      error.hidden = true;
+      error.textContent = "";
+    }
+  });
+}
+
+function validateMortgageInputs(values) {
+  const loanAmount = Number(values.loanAmount || 0);
+  const interestRate = Number(values.interestRate || 0);
+  const tenure = Number(values.tenure || 0);
+
+  if (!loanAmount || !interestRate || !tenure) {
+    return { valid: false, message: "Please enter a loan amount, interest rate, and tenure." };
+  }
+
+  if (loanAmount < 100000) {
+    return { valid: false, message: "Loan amount must be at least 100,000." };
+  }
+
+  if (interestRate <= 0 || interestRate > 100) {
+    return { valid: false, message: "Interest rate must be between 0 and 100." };
+  }
+
+  if (tenure < 1 || tenure > 40) {
+    return { valid: false, message: "Tenure must be between 1 and 40 years." };
+  }
+
+  return { valid: true };
+}
+
+function calculateMortgage(values) {
+  const principal = Number(values.loanAmount || 0);
+  const annualRate = Number(values.interestRate || 0) / 100;
+  const months = Number(values.tenure || 0) * 12;
+  const monthlyRate = annualRate / 12;
+
+  if (monthlyRate === 0) {
+    return {
+      principal,
+      monthly: principal / months,
+      total: principal,
+      interest: 0
+    };
+  }
+
+  const monthlyPayment = principal * (monthlyRate * Math.pow(1 + monthlyRate, months)) / (Math.pow(1 + monthlyRate, months) - 1);
+  const totalRepayment = monthlyPayment * months;
+  const totalInterest = totalRepayment - principal;
+
+  return {
+    principal,
+    monthly: monthlyPayment,
+    total: totalRepayment,
+    interest: totalInterest
+  };
+}
+
+function renderMortgageResults(result, summaryFields) {
+  if (summaryFields.principal) {
+    summaryFields.principal.textContent = formatCurrency(result.principal);
+  }
+  if (summaryFields.monthly) {
+    summaryFields.monthly.textContent = formatCurrency(result.monthly);
+  }
+  if (summaryFields.total) {
+    summaryFields.total.textContent = formatCurrency(result.total);
+  }
+  if (summaryFields.interest) {
+    summaryFields.interest.textContent = formatCurrency(result.interest);
+  }
+}
+
+async function initFavouritesPage() {
+  const container = document.getElementById("favourites-results");
+  const loading = document.getElementById("loading-state");
+  const clearButton = document.getElementById("clear-favourites");
+
+  if (!container) {
+    return;
+  }
+
+  showLoading(loading);
+  const favourites = getFavourites();
+  state.favourites = favourites;
+
+  if (!favourites.length) {
+    container.innerHTML = '<p class="status-message">You have not saved any properties yet.</p>';
+    hideLoading(loading);
+    return;
+  }
+
+  container.innerHTML = "";
+  favourites.forEach((property) => renderPropertyCard(property, container));
+  attachFavouriteHandlers(container);
+  hideLoading(loading);
+
+  if (clearButton) {
+    clearButton.addEventListener("click", () => {
+      state.favourites = [];
+      saveFavourites();
+      container.innerHTML = '<p class="status-message">Your favourites have been cleared.</p>';
+    });
+  }
+}
+
+async function initMovingPage() {
+  const container = document.getElementById("moving-services");
+  const loading = document.getElementById("loading-state");
+  if (!container) {
+    return;
+  }
+
+  showLoading(loading);
+  try {
+    const payload = await fetchJson(`${API_BASE_URL}${API_ENDPOINTS.movingServices}`);
+    const services = payload?.data?.services || [];
+    container.innerHTML = "";
+    if (!services.length) {
+      container.innerHTML = '<p class="status-message">No moving services are available at the moment.</p>';
+      hideLoading(loading);
+      return;
+    }
+
+    services.forEach((service) => renderMovingServiceCard(service, container));
+    hideLoading(loading);
+  } catch (catchError) {
+    hideLoading(loading);
+    showError(catchError.message || "Unable to load moving services.", "api_error");
+  }
+}
+
+document.addEventListener("DOMContentLoaded", initApp);
