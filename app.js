@@ -1314,10 +1314,96 @@ function attachFavouriteHandlers(container) {
   });
 }
 
+function initHeroSlideshow() {
+  const slideshow = document.querySelector(".hero__bg");
+  const slides = Array.from(slideshow?.querySelectorAll(".hero__bg-slide") || []);
+
+  if (!slideshow || !slides.length) {
+    return null;
+  }
+
+  let currentIndex = 0;
+  let intervalId = null;
+  let isVisible = true;
+
+  const setActiveSlide = (index) => {
+    slides.forEach((slide, slideIndex) => {
+      slide.classList.toggle("hero__bg-slide--active", slideIndex === index);
+    });
+  };
+
+  const preloadSlide = (index) => {
+    const slide = slides[index];
+    if (!slide) {
+      return;
+    }
+
+    const src = slide.getAttribute("data-src") || slide.getAttribute("src") || "";
+    if (!src) {
+      return;
+    }
+
+    if (!slide.getAttribute("src")) {
+      slide.setAttribute("src", src);
+    }
+
+    const img = new Image();
+    img.src = src;
+  };
+
+  const startRotation = () => {
+    if (intervalId !== null) {
+      return;
+    }
+
+    intervalId = window.setInterval(() => {
+      currentIndex = (currentIndex + 1) % slides.length;
+      setActiveSlide(currentIndex);
+    }, 6000);
+  };
+
+  const stopRotation = () => {
+    if (intervalId !== null) {
+      window.clearInterval(intervalId);
+      intervalId = null;
+    }
+  };
+
+  const handleVisibilityChange = () => {
+    if (document.hidden) {
+      isVisible = false;
+      stopRotation();
+      return;
+    }
+
+    isVisible = true;
+    if (slides.length > 1) {
+      startRotation();
+    }
+  };
+
+  preloadSlide(currentIndex);
+  setActiveSlide(currentIndex);
+
+  if (slides.length > 1) {
+    startRotation();
+  }
+
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+
+  return {
+    stop: stopRotation,
+    start: startRotation,
+    setActiveSlide
+  };
+}
+
 async function initHomePage() {
   const container = document.getElementById("featured-properties");
   const loading = document.getElementById("loading-state");
   const error = document.getElementById("error-state");
+
+  initHeroSlideshow();
 
   if (!container) {
     return;
