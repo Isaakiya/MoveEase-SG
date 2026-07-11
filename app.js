@@ -28,6 +28,8 @@ const PAGE_CONFIG = {
   relatedLimit: 4
 };
 
+
+
 const DEMO_PROPERTIES = [
   {
     id: "prop-001",
@@ -101,6 +103,38 @@ const DEMO_MOVING_SERVICES = [
     featured: true,
     duration: "2 hours"
   }
+];
+
+const LOCATION_AUTOCOMPLETE_SUGGESTIONS = [
+  "Ang Mo Kio",
+  "Alexandra",
+  "Bishan",
+  "Bukit Batok",
+  "Bukit Merah",
+  "Bukit Timah",
+  "Changi",
+  "Clementi",
+  "East Coast",
+  "Holland Village",
+  "Jurong East",
+  "Jurong West",
+  "Katong",
+  "Kallang",
+  "Kovan",
+  "Newton",
+  "Novena",
+  "Orchard",
+  "Pasir Ris",
+  "Paya Lebar",
+  "Queenstown",
+  "Serangoon",
+  "Sengkang",
+  "Tampines",
+  "Tanglin",
+  "Tanjong Pagar",
+  "Toa Payoh",
+  "Woodlands",
+  "Yishun"
 ];
 
 const state = {
@@ -1414,6 +1448,8 @@ async function initHomePage() {
 
   const form = document.getElementById("home-search-form");
   if (form) {
+    initLocationAutocomplete(form);
+
     form.addEventListener("submit", (event) => {
       event.preventDefault();
       const formData = new FormData(form);
@@ -1464,6 +1500,237 @@ async function initHomePage() {
   }
 }
 
+function getLevenshteinDistance(left, right) {
+  const leftLength = left.length;
+  const rightLength = right.length;
+  const matrix = Array.from({ length: leftLength + 1 }, () => Array(rightLength + 1).fill(0));
+
+  for (let index = 0; index <= leftLength; index += 1) {
+    matrix[index][0] = index;
+  }
+
+  for (let index = 0; index <= rightLength; index += 1) {
+    matrix[0][index] = index;
+  }
+
+  for (let leftIndex = 1; leftIndex <= leftLength; leftIndex += 1) {
+    for (let rightIndex = 1; rightIndex <= rightLength; rightIndex += 1) {
+      const substitutionCost = left[leftIndex - 1] === right[rightIndex - 1] ? 0 : 1;
+      matrix[leftIndex][rightIndex] = Math.min(
+        matrix[leftIndex - 1][rightIndex] + 1,
+        matrix[leftIndex][rightIndex - 1] + 1,
+        matrix[leftIndex - 1][rightIndex - 1] + substitutionCost
+      );
+    }
+  }
+
+  return matrix[leftLength][rightLength];
+}
+
+function rankLocationMatches(query, suggestions) {
+  const normalizedQuery = query.trim().toLowerCase();
+
+  if (!normalizedQuery) {
+    return [];
+  }
+
+  const scoredSuggestions = suggestions.map((suggestion) => {
+    const normalizedSuggestion = suggestion.toLowerCase();
+    const suggestionWords = normalizedSuggestion.split(/\s+/);
+
+    let score = 0;
+
+    if (normalizedSuggestion === normalizedQuery) {
+      score += 100;
+    } else if (normalizedSuggestion.startsWith(normalizedQuery)) {
+      score += 60;
+    }
+
+    const wordStartsWithQuery = suggestionWords.some((word) => word.startsWith(normalizedQuery));
+    if (wordStartsWithQuery) {
+      score += 35;
+    }
+
+    if (normalizedSuggestion.includes(normalizedQuery)) {
+      score += 20;
+    }
+
+    if (normalizedQuery.length >= 3) {
+      const distance = getLevenshteinDistance(normalizedQuery, normalizedSuggestion);
+      const maxDistance = Math.max(2, Math.floor(normalizedQuery.length / 3));
+      if (distance <= maxDistance) {
+        score += Math.max(10, 20 - distance * 4);
+      }
+    }
+
+    return { suggestion, score };
+  });
+
+  return scoredSuggestions
+    .filter(({ score }) => score > 0)
+    .sort((left, right) => right.score - left.score || left.suggestion.localeCompare(right.suggestion))
+    .slice(0, 8);
+}
+
+function initLocationAutocomplete(form) {
+  let input = form.elements.location;
+  // Fallback: find the input inside an element with class `autocomplete-field`
+  if (!input) {
+    const fallback = form.querySelector('.autocomplete-field input[name="location"]');
+    if (fallback) {
+      input = fallback;
+    }
+  }
+  if (!input) {
+    return;
+  }
+
+  // Ensure we attach the listbox to the nearest `.autocomplete-field` container
+  // so positioning (position: relative) from CSS continues to work.
+  const outerContainer = input.closest('.autocomplete-field') || input.parentNode;
+  const wrapper = document.createElement("div");
+  wrapper.className = "autocomplete";
+  // If input is already directly inside the outer container, replace in-place,
+  // otherwise insert wrapper before the input then move the input into it.
+  if (input.parentNode !== outerContainer) {
+    outerContainer.insertBefore(wrapper, input);
+  } else {
+    input.parentNode.insertBefore(wrapper, input);
+  }
+  wrapper.appendChild(input);
+
+  const listboxId = "location-autocomplete-list";
+  const listbox = document.createElement("div");
+  listbox.className = "autocomplete__list";
+  listbox.id = listboxId;
+  listbox.setAttribute("role", "listbox");
+  listbox.hidden = true;
+  listbox.style.display = "none";
+  wrapper.appendChild(listbox);
+
+  input.setAttribute("role", "combobox");
+  input.setAttribute("aria-autocomplete", "list");
+  input.setAttribute("aria-controls", listboxId);
+  input.setAttribute("aria-expanded", "false");
+
+  let activeIndex = -1;
+
+  const renderSuggestions = (query) => {
+    const q = String(query || "").trim();
+    if (!q) {
+      hideSuggestions();
+      return;
+    }
+
+    // Use the trimmed query for ranking so whitespace-only input doesn't match
+    const visibleSuggestions = rankLocationMatches(q, LOCATION_AUTOCOMPLETE_SUGGESTIONS);
+    console.log('[initLocationAutocomplete] renderSuggestions', { query, visibleCount: visibleSuggestions.length, visibleSuggestions });
+
+    if (!visibleSuggestions.length) {
+      listbox.innerHTML = '<div class="autocomplete__empty" role="option">No locations found</div>';
+      listbox.hidden = false;
+      listbox.style.display = "grid";
+      input.setAttribute("aria-expanded", "true");
+      activeIndex = -1;
+      input.removeAttribute("aria-activedescendant");
+      return;
+    }
+
+    listbox.innerHTML = visibleSuggestions
+      .map((item, index) => `
+        <button class="autocomplete__option" type="button" id="${listboxId}-option-${index}" role="option" data-index="${index}" aria-selected="${index === activeIndex}">
+          ${item.suggestion}
+        </button>
+      `)
+      .join("");
+    listbox.hidden = false;
+    listbox.style.display = "grid";
+    input.setAttribute("aria-expanded", "true");
+    activeIndex = -1;
+    input.removeAttribute("aria-activedescendant");
+  };
+
+  const hideSuggestions = () => {
+    listbox.hidden = true;
+    listbox.style.display = "none";
+    listbox.innerHTML = "";
+    input.setAttribute("aria-expanded", "false");
+    activeIndex = -1;
+    input.removeAttribute("aria-activedescendant");
+  };
+
+  input.addEventListener("input", () => {
+    console.log('[initLocationAutocomplete] input event', { value: input.value });
+    const trimmed = String(input.value || "").trim();
+    if (!trimmed) {
+      hideSuggestions();
+      return;
+    }
+    renderSuggestions(input.value);
+  });
+
+  input.addEventListener("focus", () => {
+    // focus
+    const trimmed = String(input.value || "").trim();
+    if (!trimmed) {
+      hideSuggestions();
+      return;
+    }
+    renderSuggestions(input.value);
+  });
+
+  input.addEventListener("keydown", (event) => {
+    const options = Array.from(listbox.querySelectorAll(".autocomplete__option"));
+
+    if (!options.length) {
+      if (event.key === "Escape") {
+        hideSuggestions();
+      }
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      activeIndex = (activeIndex + 1) % options.length;
+      options.forEach((option, index) => {
+        option.classList.toggle("is-active", index === activeIndex);
+        option.setAttribute("aria-selected", String(index === activeIndex));
+      });
+      input.setAttribute("aria-activedescendant", options[activeIndex].id);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      activeIndex = (activeIndex - 1 + options.length) % options.length;
+      options.forEach((option, index) => {
+        option.classList.toggle("is-active", index === activeIndex);
+        option.setAttribute("aria-selected", String(index === activeIndex));
+      });
+      input.setAttribute("aria-activedescendant", options[activeIndex].id);
+    } else if (event.key === "Enter" && activeIndex >= 0) {
+      event.preventDefault();
+      input.value = options[activeIndex].textContent.trim();
+      hideSuggestions();
+    } else if (event.key === "Escape") {
+      hideSuggestions();
+    }
+  });
+
+  listbox.addEventListener("click", (event) => {
+    const option = event.target.closest(".autocomplete__option");
+    if (!option) {
+      return;
+    }
+
+    input.value = option.textContent.trim();
+    hideSuggestions();
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!wrapper.contains(event.target)) {
+      hideSuggestions();
+    }
+  });
+}
+
 async function initSearchPage() {
   const container = document.getElementById("search-results");
   const loading = document.getElementById("loading-state");
@@ -1471,6 +1738,8 @@ async function initSearchPage() {
   if (!container || !form) {
     return;
   }
+
+  initLocationAutocomplete(form);
 
   const params = parseSearchParams();
   state.currentSearchFilters = { ...DEFAULT_FILTERS, ...params };

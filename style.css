@@ -430,6 +430,47 @@ select:focus-visible {
   background: white;
 }
 
+.autocomplete-field {
+  position: relative;
+}
+
+.autocomplete__list {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+
+.autocomplete__option {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 0.7rem 0.8rem;
+  text-align: left;
+  border-radius: 10px;
+  color: var(--color-text);
+}
+
+.autocomplete__option:hover,
+.autocomplete__option.is-active {
+  background: rgba(20, 83, 45, 0.08);
+  color: var(--color-primary);
+}
+
+.autocomplete__empty {
+  padding: 0.7rem 0.8rem;
+  color: var(--color-muted);
+  font-size: 0.95rem;
+}
+
 .page-shell {
   padding: 2.5rem 0 4rem;
 }
