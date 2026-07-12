@@ -103,7 +103,11 @@
             </div>
             <a class="text-link" href="search.html">View all listings</a>
           </div>
-          <div id="featured-properties" class="property-grid" data-results></div>
+          <div class="property-carousel">
+            <button class="carousel-control" type="button" data-carousel-prev aria-label="Show previous properties">&lt;</button>
+            <div id="featured-properties" class="property-grid property-grid--carousel" data-results></div>
+            <button class="carousel-control" type="button" data-carousel-next aria-label="Show next properties">&gt;</button>
+          </div>
           <div id="loading-state" class="loading-state" aria-live="polite" hidden></div>
           <div id="error-state" class="status-message" data-error hidden></div>
         </div>
@@ -176,6 +180,8 @@
       </form>
     </aside>
 
+    <script src="https://cdn.botpress.cloud/webchat/v3.6/inject.js"></script>
+    <script src="https://files.bpcontent.cloud/2026/07/12/10/20260712100150-NPBMMXVE.js" defer></script>
     <script src="app.js" defer></script>
   </body>
 </html>

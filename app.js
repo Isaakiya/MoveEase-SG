@@ -1,7 +1,7 @@
-const API_BASE_URL = "";
+const API_BASE_URL = "http://localhost:3001";
 
 const API_ENDPOINTS = {
-  featuredProperties: "/api/properties?featured=true",
+  featuredProperties: "/api/properties?limit=50",
   searchProperties: "/api/properties",
   propertyDetails: (id) => `/api/properties/${id}`,
   relatedProperties: "/api/properties/related",
@@ -29,6 +29,64 @@ const PAGE_CONFIG = {
 };
 
 
+
+const locationAutocompleteState = {
+  suggestions: [],
+  isLoading: false,
+  pendingPromise: null
+};
+
+function normalizeLocationSuggestion(value) {
+  const text = String(value ?? "").trim();
+  return text.replace(/\s+/g, " ");
+}
+
+function collectLocationSuggestions(properties) {
+  const seen = new Set();
+  const suggestions = [];
+
+  (Array.isArray(properties) ? properties : []).forEach((property) => {
+    const location = normalizeLocationSuggestion(property?.location);
+    if (!location) {
+      return;
+    }
+
+    const key = location.toLowerCase();
+    if (seen.has(key)) {
+      return;
+    }
+
+    seen.add(key);
+    suggestions.push(location);
+  });
+
+  return suggestions.sort((left, right) => left.localeCompare(right));
+}
+
+async function ensureLocationAutocompleteSuggestions() {
+  if (locationAutocompleteState.suggestions.length) {
+    return locationAutocompleteState.suggestions;
+  }
+
+  if (locationAutocompleteState.pendingPromise) {
+    return locationAutocompleteState.pendingPromise;
+  }
+
+  locationAutocompleteState.isLoading = true;
+  locationAutocompleteState.pendingPromise = fetchJson(`${API_BASE_URL}${API_ENDPOINTS.searchProperties}?limit=100`)
+    .then((payload) => {
+      const properties = payload?.data?.properties || [];
+      const suggestions = collectLocationSuggestions(properties);
+      locationAutocompleteState.suggestions = suggestions;
+      return suggestions;
+    })
+    .finally(() => {
+      locationAutocompleteState.isLoading = false;
+      locationAutocompleteState.pendingPromise = null;
+    });
+
+  return locationAutocompleteState.pendingPromise;
+}
 
 const DEMO_PROPERTIES = [
   {
@@ -85,9 +143,9 @@ const DEMO_MOVING_SERVICES = [
     description: "End-to-end support for your relocation.",
     price: 450,
     category: "Premium",
-    image: "https://placehold.co/600x400?text=Full+Move",
+    image: "images/moving/fullmove.jpg",
     ctaLabel: "Book now",
-    ctaUrl: "/moving.html",
+    ctaUrl: "moving-booking.html",
     featured: true,
     duration: "4 hours"
   },
@@ -97,44 +155,12 @@ const DEMO_MOVING_SERVICES = [
     description: "Careful packing with premium materials.",
     price: 220,
     category: "Standard",
-    image: "https://placehold.co/600x400?text=Packing",
+    image: "images/moving/packing&unpacking.jpg",
     ctaLabel: "Get a quote",
-    ctaUrl: "/moving.html",
+    ctaUrl: "moving-booking.html",
     featured: true,
     duration: "2 hours"
   }
-];
-
-const LOCATION_AUTOCOMPLETE_SUGGESTIONS = [
-  "Ang Mo Kio",
-  "Alexandra",
-  "Bishan",
-  "Bukit Batok",
-  "Bukit Merah",
-  "Bukit Timah",
-  "Changi",
-  "Clementi",
-  "East Coast",
-  "Holland Village",
-  "Jurong East",
-  "Jurong West",
-  "Katong",
-  "Kallang",
-  "Kovan",
-  "Newton",
-  "Novena",
-  "Orchard",
-  "Pasir Ris",
-  "Paya Lebar",
-  "Queenstown",
-  "Serangoon",
-  "Sengkang",
-  "Tampines",
-  "Tanglin",
-  "Tanjong Pagar",
-  "Toa Payoh",
-  "Woodlands",
-  "Yishun"
 ];
 
 const state = {
@@ -173,6 +199,27 @@ const assistantState = {
   loadingState: false,
   confidenceScore: null
 };
+
+// Global diagnostic error handlers (Phase 1 - non-destructive)
+window.addEventListener("error", (event) => {
+  try {
+    console.error("Window error:", event.error || event.message, event);
+    showError("An unexpected error occurred. Check the console for details.");
+    state.errorState = String((event.error && event.error.message) || event.message || "window_error");
+  } catch (e) {
+    console.error("Error in global error handler", e);
+  }
+});
+
+window.addEventListener("unhandledrejection", (event) => {
+  try {
+    console.error("Unhandled promise rejection:", event.reason);
+    showError("An internal error occurred. Check the console for details.");
+    state.errorState = String((event.reason && event.reason.message) || event.reason || "unhandledrejection");
+  } catch (e) {
+    console.error("Error in unhandledrejection handler", e);
+  }
+});
 
 function initApp() {
   initAssistantFeature();
@@ -913,140 +960,31 @@ function bindMenuToggle() {
   });
 }
 
-function getFallbackPayload(url) {
-  const parsedUrl = new URL(url, window.location.href);
-  const pathname = parsedUrl.pathname;
-  const searchParams = parsedUrl.searchParams;
-
-  if (pathname.includes("/api/properties") && searchParams.get("featured") === "true") {
-    return {
-      success: true,
-      message: "Featured properties loaded",
-      data: {
-        properties: DEMO_PROPERTIES
-      }
-    };
-  }
-
-  if (pathname.includes("/api/properties/related")) {
-    return {
-      success: true,
-      message: "Related properties loaded",
-      data: {
-        properties: DEMO_PROPERTIES.slice(0, 2)
-      }
-    };
-  }
-
-  if (pathname.includes("/api/properties/")) {
-    const propertyId = pathname.split("/").filter(Boolean).pop();
-    const match = DEMO_PROPERTIES.find((property) => property.id === propertyId);
-    if (match) {
-      return {
-        success: true,
-        message: "Property details loaded",
-        data: {
-          property: match
-        }
-      };
-    }
-
-    return {
-      success: false,
-      message: "Property not found",
-      error: {
-        type: "not_found",
-        details: ["Property not found"]
-      }
-    };
-  }
-
-  if (pathname.includes("/api/properties") && pathname.includes("/related")) {
-    return {
-      success: true,
-      message: "Related properties loaded",
-      data: {
-        properties: DEMO_PROPERTIES.slice(0, 2)
-      }
-    };
-  }
-
-  if (pathname.includes("/api/properties")) {
-    const type = searchParams.get("propertyType") || "";
-    const filtered = DEMO_PROPERTIES.filter((property) => {
-      if (type && property.propertyType !== type) {
-        return false;
-      }
-      return true;
-    });
-    return {
-      success: true,
-      message: "Properties found",
-      data: {
-        properties: filtered,
-        pagination: {
-          page: 1,
-          limit: 12,
-          totalItems: filtered.length,
-          totalPages: 1
-        }
-      }
-    };
-  }
-
-  if (pathname.includes("/api/moving/services")) {
-    return {
-      success: true,
-      message: "Moving services loaded",
-      data: {
-        services: DEMO_MOVING_SERVICES
-      }
-    };
-  }
-
-  if (pathname.includes("/api/properties/")) {
-    const propertyId = pathname.split("/").filter(Boolean).pop();
-    const match = DEMO_PROPERTIES.find((property) => property.id === propertyId);
-    if (match) {
-      return {
-        success: true,
-        message: "Property details loaded",
-        data: {
-          property: match
-        }
-      };
-    }
-
-    return {
-      success: false,
-      message: "Property not found",
-      error: {
-        type: "not_found",
-        details: ["Property not found"]
-      }
-    };
-  }
-
-  return {
-    success: false,
-    message: "Unable to load content right now.",
-    error: {
-      type: "api_error",
-      details: []
-    }
-  };
-}
-
 async function fetchJson(url, options = {}) {
+  console.info("fetchJson: fetching", url);
+
   try {
     const response = await fetch(url, options);
+    console.info("fetchJson: response status", response.status, response.statusText, url);
+
+    const payload = await response.json().catch(() => null);
     if (!response.ok) {
-      return getFallbackPayload(url);
+      const message = payload?.message || `Request failed with status ${response.status}`;
+      throw new Error(message);
     }
 
-    return response.json();
+    if (!payload || payload.success === false) {
+      throw new Error(payload?.message || "The request returned an invalid response.");
+    }
+
+    if (!payload?.data) {
+      throw new Error("The request did not include any data.");
+    }
+
+    return payload;
   } catch (error) {
-    return getFallbackPayload(url);
+    console.error("fetchJson: error fetching", url, error);
+    throw new Error(error.message || "Unable to load content right now.");
   }
 }
 
@@ -1085,32 +1023,119 @@ function toggleFavourite(property) {
   return state.favourites;
 }
 
-function renderPropertyCard(property, container) {
-  if (!container) {
-    return;
-  }
-
-  const image = Array.isArray(property.images) && property.images.length ? property.images[0] : "https://placehold.co/600x400?text=MoveEase";
+function renderPropertyCard(property) {
   const card = document.createElement("article");
   card.className = "property-card card";
-  card.innerHTML = `
-    <img class="property-card__image" src="${image}" alt="${property.title}" loading="lazy" />
-    <h3 class="property-card__title">${property.title}</h3>
-    <p class="property-card__meta">${property.location}</p>
-    <p class="property-card__price">${formatCurrency(property.price)}</p>
-    <div class="property-card__details">
-      <span class="tag">${property.propertyType || "Property"}</span>
-      <span class="tag">${property.bedrooms || 0} bd</span>
-      <span class="tag">${property.bathrooms || 0} ba</span>
-      <span class="tag">${formatArea(property.floorArea || 0)}</span>
-    </div>
-    <div class="property-card__actions">
-      <button class="button button--outline favourite-button ${isFavourite(property.id) ? "active" : ""}" type="button" data-favourite-id="${property.id}">${isFavourite(property.id) ? "Saved" : "Favourite"}</button>
-      <a class="button button--primary" href="property.html?id=${property.id}">View Details</a>
-    </div>
-  `;
 
-  container.appendChild(card);
+  if (!property || typeof property !== "object") {
+    return card;
+  }
+
+  card.propertyData = property;
+
+  const title = typeof property.title === "string" ? property.title.trim() : "";
+  const location = typeof property.location === "string" ? property.location.trim() : "";
+  const propertyType = typeof property.propertyType === "string" ? property.propertyType.trim() : "";
+  const image = Array.isArray(property.images) && property.images.some((value) => typeof value === "string" && value.trim())
+    ? property.images.find((value) => typeof value === "string" && value.trim())
+    : "";
+  const priceValue = property.price;
+  const bedroomsValue = property.bedrooms;
+  const bathroomsValue = property.bathrooms;
+  const floorAreaValue = property.floorArea;
+  const nearestMrtValue = typeof property.nearestMrt === "string" ? property.nearestMrt.trim() : "";
+  const tenureValue = typeof property.tenure === "string" ? property.tenure.trim() : "";
+
+  if (image) {
+    const imageElement = document.createElement("img");
+    imageElement.className = "property-card__image";
+    imageElement.src = image;
+    imageElement.alt = title || "Property image";
+    imageElement.loading = "lazy";
+    card.appendChild(imageElement);
+  }
+
+  if (title) {
+    const titleElement = document.createElement("h3");
+    titleElement.className = "property-card__title";
+    titleElement.textContent = title;
+    card.appendChild(titleElement);
+  }
+
+  if (location) {
+    const metaElement = document.createElement("p");
+    metaElement.className = "property-card__meta";
+    metaElement.textContent = location;
+    card.appendChild(metaElement);
+  }
+
+  if (priceValue !== null && priceValue !== undefined && priceValue !== "") {
+    const priceElement = document.createElement("p");
+    priceElement.className = "property-card__price";
+    priceElement.textContent = formatCurrency(priceValue);
+    card.appendChild(priceElement);
+  }
+
+  const detailItems = [];
+
+  if (propertyType) {
+    detailItems.push(propertyType);
+  }
+
+  if (Number.isFinite(Number(bedroomsValue)) && Number(bedroomsValue) > 0) {
+    detailItems.push(`${Number(bedroomsValue)} bd`);
+  }
+
+  if (Number.isFinite(Number(bathroomsValue)) && Number(bathroomsValue) > 0) {
+    detailItems.push(`${Number(bathroomsValue)} ba`);
+  }
+
+  if (Number.isFinite(Number(floorAreaValue)) && Number(floorAreaValue) > 0) {
+    detailItems.push(formatArea(Number(floorAreaValue)));
+  }
+
+  if (detailItems.length) {
+    const detailsElement = document.createElement("div");
+    detailsElement.className = "property-card__details";
+
+    detailItems.forEach((detailItem) => {
+      const tag = document.createElement("span");
+      tag.className = "tag";
+      tag.textContent = detailItem;
+      detailsElement.appendChild(tag);
+    });
+
+    card.appendChild(detailsElement);
+  }
+
+  const secondaryDetails = [tenureValue, nearestMrtValue].filter(Boolean);
+  if (secondaryDetails.length) {
+    const summaryElement = document.createElement("p");
+    summaryElement.className = "property-card__meta";
+    summaryElement.textContent = secondaryDetails.join(" • ");
+    card.appendChild(summaryElement);
+  }
+
+  const actionsElement = document.createElement("div");
+  actionsElement.className = "property-card__actions";
+
+  const favouriteButton = document.createElement("button");
+  favouriteButton.className = `button button--outline favourite-button ${isFavourite(property.id) ? "active" : ""}`;
+  favouriteButton.type = "button";
+  favouriteButton.dataset.favouriteId = property.id;
+  favouriteButton.setAttribute("aria-pressed", String(isFavourite(property.id)));
+  favouriteButton.setAttribute("aria-label", `Save ${title || "property"} to favourites`);
+  favouriteButton.textContent = isFavourite(property.id) ? "Saved" : "Favourite";
+  actionsElement.appendChild(favouriteButton);
+
+  const detailsLink = document.createElement("a");
+  detailsLink.className = "button button--primary";
+  detailsLink.href = `property.html?id=${property.id}`;
+  detailsLink.textContent = "View Details";
+  actionsElement.appendChild(detailsLink);
+
+  card.appendChild(actionsElement);
+  return card;
 }
 
 function renderMovingServiceCard(service, container) {
@@ -1118,21 +1143,26 @@ function renderMovingServiceCard(service, container) {
     return;
   }
 
-  const image = service.image || "https://placehold.co/600x400?text=Moving";
+  const image = service.image || "images/moving/fullmove.jpg";
   const card = document.createElement("article");
   card.className = "service-card card";
   card.innerHTML = `
-    <img class="service-card__image" src="${image}" alt="${service.title}" loading="lazy" />
+    <img class="service-card__image" src="${encodeURI(image)}" alt="${service.title}" loading="lazy" />
     <h3 class="service-card__title">${service.title}</h3>
     <p class="service-card__meta">${service.category || "Service"}</p>
     <p>${service.description}</p>
     <p class="property-card__price">${formatCurrency(service.price)}</p>
     <div class="property-card__actions">
-      <a class="button button--primary" href="moving.html">${service.ctaLabel || "Learn more"}</a>
+      <a class="button button--primary" href="${service.ctaUrl || "moving.html"}">${service.ctaLabel || "Learn more"}</a>
     </div>
   `;
 
   container.appendChild(card);
+}
+
+function getMovingServices(payload) {
+  const services = Array.isArray(payload?.data?.services) ? payload.data.services : [];
+  return services.length ? services : DEMO_MOVING_SERVICES;
 }
 
 function renderNavigation(container) {
@@ -1291,6 +1321,43 @@ function validateSearchFilters(filters) {
   return errors;
 }
 
+function filterProperties(properties, filters = {}) {
+  const locationQuery = String(filters.location || "").trim().toLowerCase();
+  const propertyType = String(filters.propertyType || "").trim().toLowerCase();
+  const minPrice = Number(filters.minPrice || 0);
+  const maxPrice = Number(filters.maxPrice || 0);
+  const bedrooms = Number(filters.bedrooms || 0);
+  const bathrooms = Number(filters.bathrooms || 0);
+
+  return properties.filter((property) => {
+    const location = String(property.location || "").toLowerCase();
+    const type = String(property.propertyType || "").toLowerCase();
+    const price = Number(property.price || 0);
+    const bedroomCount = Number(property.bedrooms || 0);
+    const bathroomCount = Number(property.bathrooms || 0);
+
+    if (locationQuery && !location.includes(locationQuery)) {
+      return false;
+    }
+    if (propertyType && type !== propertyType) {
+      return false;
+    }
+    if (minPrice && price < minPrice) {
+      return false;
+    }
+    if (maxPrice && price > maxPrice) {
+      return false;
+    }
+    if (bedrooms && bedroomCount < bedrooms) {
+      return false;
+    }
+    if (bathrooms && bathroomCount < bathrooms) {
+      return false;
+    }
+    return true;
+  });
+}
+
 function sortProperties(properties, sortBy) {
   const list = [...properties];
   switch (sortBy) {
@@ -1318,32 +1385,56 @@ function renderPagination(totalPages, currentPage) {
     return;
   }
 
-  const buttons = [];
+  const pageNumbers = [];
   for (let page = 1; page <= totalPages; page += 1) {
-    buttons.push(`<button type="button" class="${page === currentPage ? "active" : ""}" data-page="${page}">${page}</button>`);
+    pageNumbers.push(`<button type="button" class="${page === currentPage ? "active" : ""}" data-page="${page}" aria-current="${page === currentPage ? "page" : "false"}">${page}</button>`);
   }
-  pagination.innerHTML = buttons.join("");
+
+  const prevButton = `<button type="button" data-page="${Math.max(1, currentPage - 1)}" ${currentPage <= 1 ? "disabled" : ""}>Prev</button>`;
+  const nextButton = `<button type="button" data-page="${Math.min(totalPages, currentPage + 1)}" ${currentPage >= totalPages ? "disabled" : ""}>Next</button>`;
+
+  pagination.innerHTML = `${prevButton}${pageNumbers.join("")}${nextButton}`;
+
+  pagination.querySelectorAll("button[data-page]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const page = Number(button.dataset.page);
+      if (Number.isFinite(page) && page > 0) {
+        changePage(page);
+      }
+    });
+  });
 }
 
-function changePage(pageNumber) {
+async function changePage(pageNumber) {
   const filters = { ...state.currentSearchFilters, page: pageNumber };
   state.currentPage = pageNumber;
   const query = updateSearchParams(filters);
   window.history.replaceState({}, "", `${window.location.pathname}${query}`);
-  initSearchPage();
+  await loadSearchResults();
 }
 
 function attachFavouriteHandlers(container) {
   container.querySelectorAll("[data-favourite-id]").forEach((button) => {
     button.addEventListener("click", () => {
       const propertyId = button.getAttribute("data-favourite-id");
-      const property = state.searchResults.find((item) => item.id === propertyId) || state.selectedProperty;
+      const card = button.closest(".property-card");
+      const property = (card && card.propertyData) || state.searchResults.find((item) => item.id === propertyId) || state.selectedProperty;
       if (!property) {
         return;
       }
+
       toggleFavourite(property);
-      button.classList.toggle("active", isFavourite(property.id));
-      button.textContent = isFavourite(property.id) ? "Saved" : "Favourite";
+      const isSaved = isFavourite(property.id);
+      button.classList.toggle("active", isSaved);
+      button.setAttribute("aria-pressed", String(isSaved));
+      button.textContent = isSaved ? "Saved" : "Favourite";
+
+      if (document.body.dataset.page === "favourites" && !isSaved) {
+        card?.remove();
+        if (!container.querySelector(".property-card")) {
+          container.innerHTML = '<p class="status-message">You have not saved any properties yet.</p>';
+        }
+      }
     });
   });
 }
@@ -1432,6 +1523,48 @@ function initHeroSlideshow() {
   };
 }
 
+function initFeaturedPropertyCarousel(container) {
+  const wrapper = container?.closest(".property-carousel");
+  if (!wrapper || !container) {
+    return;
+  }
+
+  const previousButton = wrapper.querySelector("[data-carousel-prev]");
+  const nextButton = wrapper.querySelector("[data-carousel-next]");
+
+  if (!previousButton || !nextButton) {
+    return;
+  }
+
+  const getScrollStep = () => {
+    const card = container.querySelector(".property-card");
+    if (!card) {
+      return 320;
+    }
+
+    const cardRect = card.getBoundingClientRect();
+    return cardRect.width + 20;
+  };
+
+  const updateButtons = () => {
+    const maxScroll = Math.max(0, container.scrollWidth - container.clientWidth);
+    previousButton.disabled = container.scrollLeft <= 8;
+    nextButton.disabled = container.scrollLeft >= maxScroll - 8;
+  };
+
+  previousButton.addEventListener("click", () => {
+    container.scrollBy({ left: -getScrollStep(), behavior: "smooth" });
+  });
+
+  nextButton.addEventListener("click", () => {
+    container.scrollBy({ left: getScrollStep(), behavior: "smooth" });
+  });
+
+  container.addEventListener("scroll", updateButtons, { passive: true });
+  window.addEventListener("resize", updateButtons);
+  updateButtons();
+}
+
 async function initHomePage() {
   const container = document.getElementById("featured-properties");
   const loading = document.getElementById("loading-state");
@@ -1468,6 +1601,7 @@ async function initHomePage() {
 
   try {
     const payload = await fetchJson(`${API_BASE_URL}${API_ENDPOINTS.featuredProperties}`);
+    console.info("initHomePage: fetched payload", { url: `${API_BASE_URL}${API_ENDPOINTS.featuredProperties}`, payload });
     const properties = payload?.data?.properties || [];
     container.innerHTML = "";
     if (!properties.length) {
@@ -1476,8 +1610,11 @@ async function initHomePage() {
       return;
     }
 
-    properties.forEach((property) => renderPropertyCard(property, container));
+    properties.forEach((property) => {
+      container.appendChild(renderPropertyCard(property));
+    });
     attachFavouriteHandlers(container);
+    initFeaturedPropertyCarousel(container);
     hideLoading(loading);
   } catch (catchError) {
     hideLoading(loading);
@@ -1487,14 +1624,19 @@ async function initHomePage() {
   try {
     const preview = document.getElementById("moving-preview");
     const payload = await fetchJson(`${API_BASE_URL}${API_ENDPOINTS.movingServices}`);
-    const services = payload?.data?.services || [];
+    const services = getMovingServices(payload);
     if (preview) {
       preview.innerHTML = "";
       services.slice(0, 3).forEach((service) => renderMovingServiceCard(service, preview));
     }
   } catch (catchError) {
+    const preview = document.getElementById("moving-preview");
+    if (preview) {
+      preview.innerHTML = "";
+      getMovingServices().slice(0, 3).forEach((service) => renderMovingServiceCard(service, preview));
+    }
     if (error) {
-      error.textContent = catchError.message || "Unable to load moving services.";
+      error.textContent = catchError.message || "Showing recommended moving services.";
       error.hidden = false;
     }
   }
@@ -1622,9 +1764,19 @@ function initLocationAutocomplete(form) {
       return;
     }
 
-    // Use the trimmed query for ranking so whitespace-only input doesn't match
-    const visibleSuggestions = rankLocationMatches(q, LOCATION_AUTOCOMPLETE_SUGGESTIONS);
-    console.log('[initLocationAutocomplete] renderSuggestions', { query, visibleCount: visibleSuggestions.length, visibleSuggestions });
+    const suggestionSource = locationAutocompleteState.suggestions.length
+      ? locationAutocompleteState.suggestions
+      : [];
+
+    const visibleSuggestions = rankLocationMatches(q, suggestionSource);
+
+    if (!visibleSuggestions.length && !locationAutocompleteState.isLoading) {
+      void ensureLocationAutocompleteSuggestions().then(() => {
+        if (String(input.value || "").trim()) {
+          renderSuggestions(input.value);
+        }
+      });
+    }
 
     if (!visibleSuggestions.length) {
       listbox.innerHTML = '<div class="autocomplete__empty" role="option">No locations found</div>';
@@ -1660,7 +1812,6 @@ function initLocationAutocomplete(form) {
   };
 
   input.addEventListener("input", () => {
-    console.log('[initLocationAutocomplete] input event', { value: input.value });
     const trimmed = String(input.value || "").trim();
     if (!trimmed) {
       hideSuggestions();
@@ -1795,12 +1946,21 @@ async function loadSearchResults() {
 
   try {
     const payload = await fetchJson(`${API_BASE_URL}${API_ENDPOINTS.searchProperties}?${queryParams.toString()}`);
+    console.info("loadSearchResults: fetched payload", { url: `${API_BASE_URL}${API_ENDPOINTS.searchProperties}?${queryParams.toString()}`, payload });
     const properties = payload?.data?.properties || [];
-    const paginationData = payload?.data?.pagination || {};
-    state.searchResults = properties;
+    const filteredProperties = filterProperties(properties, state.currentSearchFilters);
+    const sortedProperties = sortProperties(filteredProperties, state.currentSearchFilters.sort || "newest");
+    const totalItems = sortedProperties.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_CONFIG.pageSize));
+    const safePage = Math.min(state.currentPage, totalPages);
+    const startIndex = (safePage - 1) * PAGE_CONFIG.pageSize;
+    const pagedProperties = sortedProperties.slice(startIndex, startIndex + PAGE_CONFIG.pageSize);
+
+    state.currentPage = safePage;
+    state.searchResults = sortedProperties;
     container.innerHTML = "";
 
-    if (!properties.length) {
+    if (!pagedProperties.length) {
       container.innerHTML = '<p class="status-message">No properties matched your current filters.</p>';
       if (pagination) {
         pagination.innerHTML = "";
@@ -1809,10 +1969,11 @@ async function loadSearchResults() {
       return;
     }
 
-    const sorted = sortProperties(properties, state.currentSearchFilters.sort || "newest");
-    sorted.forEach((property) => renderPropertyCard(property, container));
+    pagedProperties.forEach((property) => {
+      container.appendChild(renderPropertyCard(property));
+    });
     attachFavouriteHandlers(container);
-    renderPagination(paginationData.totalPages || 1, state.currentPage);
+    renderPagination(totalPages, state.currentPage);
     hideLoading(loading);
   } catch (catchError) {
     hideLoading(loading);
@@ -1874,11 +2035,30 @@ async function initPropertyPage() {
 
     if (amenitiesList) {
       amenitiesList.innerHTML = "";
-      (property.amenities || []).forEach((amenity) => {
+      const amenities = Array.isArray(property.amenities) && property.amenities.length ? property.amenities : ["Comfortable living spaces", "Excellent location"];
+      amenities.forEach((amenity) => {
         const item = document.createElement("li");
         item.textContent = amenity;
         amenitiesList.appendChild(item);
       });
+    }
+
+    const schoolList = Array.isArray(property.schools) && property.schools.length ? property.schools : [];
+    const mrtList = Array.isArray(property.mrt) && property.mrt.length ? property.mrt : [];
+    const infoSection = document.getElementById("property-info-details");
+    if (infoSection) {
+      const schoolMarkup = schoolList.length ? `<li>${schoolList.join("</li><li>")}</li>` : "<li>School details will be added soon.</li>";
+      const mrtMarkup = mrtList.length ? `<li>${mrtList.join("</li><li>")}</li>` : "<li>Transport links available on request.</li>";
+      infoSection.innerHTML = `
+        <div class="summary-card">
+          <h2>Schools nearby</h2>
+          <ul class="amenities-list">${schoolMarkup}</ul>
+        </div>
+        <div class="summary-card">
+          <h2>MRT & transport</h2>
+          <ul class="amenities-list">${mrtMarkup}</ul>
+        </div>
+      `;
     }
 
     if (favouriteButton) {
@@ -1895,7 +2075,9 @@ async function initPropertyPage() {
       const relatedPayload = await fetchJson(`${API_BASE_URL}${API_ENDPOINTS.relatedProperties}?type=${encodeURIComponent(property.propertyType || "")}&limit=${PAGE_CONFIG.relatedLimit}`);
       const relatedProperties = relatedPayload?.data?.properties || [];
       relatedContainer.innerHTML = "";
-      relatedProperties.forEach((relatedProperty) => renderPropertyCard(relatedProperty, relatedContainer));
+      relatedProperties.forEach((relatedProperty) => {
+        relatedContainer.appendChild(renderPropertyCard(relatedProperty));
+      });
       attachFavouriteHandlers(relatedContainer);
     }
 
@@ -2040,7 +2222,9 @@ async function initFavouritesPage() {
   }
 
   container.innerHTML = "";
-  favourites.forEach((property) => renderPropertyCard(property, container));
+  favourites.forEach((property) => {
+    container.appendChild(renderPropertyCard(property));
+  });
   attachFavouriteHandlers(container);
   hideLoading(loading);
 
@@ -2063,7 +2247,7 @@ async function initMovingPage() {
   showLoading(loading);
   try {
     const payload = await fetchJson(`${API_BASE_URL}${API_ENDPOINTS.movingServices}`);
-    const services = payload?.data?.services || [];
+    const services = getMovingServices(payload);
     container.innerHTML = "";
     if (!services.length) {
       container.innerHTML = '<p class="status-message">No moving services are available at the moment.</p>';
@@ -2074,8 +2258,9 @@ async function initMovingPage() {
     services.forEach((service) => renderMovingServiceCard(service, container));
     hideLoading(loading);
   } catch (catchError) {
+    container.innerHTML = "";
+    getMovingServices().forEach((service) => renderMovingServiceCard(service, container));
     hideLoading(loading);
-    showError(catchError.message || "Unable to load moving services.", "api_error");
   }
 }
 

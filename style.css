@@ -302,6 +302,7 @@ select:focus-visible {
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
+  overflow: hidden;
 }
 
 .hero__panel {
@@ -339,11 +340,52 @@ select:focus-visible {
 
 .property-grid,
 .service-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.property-grid--carousel {
+  display: flex;
+  gap: 1.25rem;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  padding: 0.25rem 0 0.5rem;
+  scrollbar-width: none;
+}
+
+.property-grid--carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.property-carousel {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.carousel-control {
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: white;
+  font-size: 1.2rem;
+  box-shadow: var(--shadow);
+}
+
+.carousel-control:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.property-grid--carousel .property-card {
+  min-width: min(280px, calc(100vw - 4rem));
+  scroll-snap-align: start;
 }
 
 .benefits-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
 .property-card,
@@ -355,39 +397,62 @@ select:focus-visible {
   padding: 1.25rem;
 }
 
+.property-card,
+.service-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  height: 100%;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.property-card:hover,
+.service-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(20, 33, 61, 0.12);
+  border-color: rgba(20, 83, 45, 0.22);
+}
+
 .property-card__image,
 .service-card__image {
   width: 100%;
   height: 220px;
   object-fit: cover;
   border-radius: 12px;
-  margin-bottom: 1rem;
-  background: #dde4e4;
+  margin-bottom: 0.25rem;
+  background: linear-gradient(135deg, #e7f2eb 0%, #dbe7e1 100%);
 }
 
 .property-card__title,
 .service-card__title {
   font-size: 1.1rem;
-  margin: 0 0 0.25rem;
+  margin: 0;
+  color: var(--color-text);
 }
 
 .property-card__meta,
 .service-card__meta,
 .property-card__price {
+  margin: 0;
+}
+
+.property-card__meta,
+.service-card__meta {
   color: var(--color-muted);
-  margin: 0.2rem 0;
+  font-size: 0.95rem;
 }
 
 .property-card__price {
   font-weight: 700;
   color: var(--color-primary);
+  font-size: 1.05rem;
 }
 
 .property-card__details {
   display: flex;
   flex-wrap: wrap;
   gap: 0.45rem;
-  margin: 0.75rem 0;
+  margin-top: 0.25rem;
 }
 
 .tag {
@@ -395,13 +460,51 @@ select:focus-visible {
   border-radius: 999px;
   padding: 0.3rem 0.6rem;
   font-size: 0.9rem;
+  color: var(--color-primary);
 }
 
 .property-card__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 1rem;
+  gap: 0.6rem;
+  margin-top: auto;
+  padding-top: 0.25rem;
+}
+
+.favourite-button {
+  background: white;
+  color: var(--color-primary);
+  border: 1px solid var(--color-border);
+}
+
+.favourite-button.active {
+  background: rgba(20, 83, 45, 0.1);
+  border-color: rgba(20, 83, 45, 0.24);
+}
+
+@media (max-width: 900px) {
+  .property-grid,
+  .service-grid,
+  .benefits-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .property-grid,
+  .service-grid,
+  .benefits-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .property-card__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .property-card__actions .button {
+    width: 100%;
+  }
 }
 
 .search-form,
@@ -588,6 +691,11 @@ select:focus-visible {
 
 .site-footer a {
   color: #f8fafc;
+}
+
+.assistant-launcher,
+.assistant-panel {
+  display: none !important;
 }
 
 .assistant-launcher {
