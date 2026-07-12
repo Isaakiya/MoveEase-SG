@@ -11,7 +11,7 @@ const TABLE_ROWS_URL = TABLE_ID
 const API_TOKEN = process.env.BOTPRESS_API_TOKEN || '';
 const BOT_ID = process.env.BOTPRESS_BOT_ID || '';
 const DEFAULT_IMAGE = '';
-const HOUSE_IMAGE_DIR = path.resolve(__dirname, '..', '..', 'images', 'houses');
+const HOUSE_IMAGE_DIR = path.resolve(__dirname, '..', '..', 'images', 'housing');
 const MOVING_IMAGE_DIR = path.resolve(__dirname, '..', '..', 'images', 'moving');
 
 const HOUSE_IMAGE_MAP = {
