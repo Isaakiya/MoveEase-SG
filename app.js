@@ -98,7 +98,7 @@ const DEMO_PROPERTIES = [
     bedrooms: 3,
     bathrooms: 2,
     floorArea: 1200,
-    images: ["https://placehold.co/800x500?text=Bright+Condo"],
+    images: ["images/houses/lentoria_condo.jpg"],
     description: "A bright and modern condo close to MRT and schools.",
     amenities: ["Pool", "Gym", "Security"],
     featured: true,
@@ -113,7 +113,7 @@ const DEMO_PROPERTIES = [
     bedrooms: 2,
     bathrooms: 2,
     floorArea: 980,
-    images: ["https://placehold.co/800x500?text=Modern+HDB"],
+    images: ["images/houses/woodleigh_HDB.jpg"],
     description: "Spacious and practical with excellent amenities nearby.",
     amenities: ["Parking", "Playground", "MRT"],
     featured: true,
@@ -128,7 +128,7 @@ const DEMO_PROPERTIES = [
     bedrooms: 4,
     bathrooms: 3,
     floorArea: 1800,
-    images: ["https://placehold.co/800x500?text=Garden+House"],
+    images: ["images/houses/Bidadari_estate.jpg"],
     description: "A generous landed home with a lush garden and outdoor lounge.",
     amenities: ["Garden", "Private Parking", "Study"],
     featured: true,
@@ -1160,6 +1160,37 @@ function renderMovingServiceCard(service, container) {
   container.appendChild(card);
 }
 
+function getDemoPropertyList() {
+  return DEMO_PROPERTIES.map((property) => ({ ...property }));
+}
+
+function getDemoPropertyById(propertyId) {
+  return getDemoPropertyList().find((property) => property.id === propertyId) || getDemoPropertyList()[0];
+}
+
+function getDemoRelatedProperties(propertyType = "") {
+  const properties = getDemoPropertyList();
+  if (!propertyType) {
+    return properties.slice(0, PAGE_CONFIG.relatedLimit);
+  }
+
+  return properties.filter((property) => property.propertyType === propertyType).slice(0, PAGE_CONFIG.relatedLimit);
+}
+
+function resolvePropertyList(payload) {
+  const properties = Array.isArray(payload?.data?.properties) ? payload.data.properties : [];
+  return properties.length ? properties : getDemoPropertyList();
+}
+
+function resolvePropertyDetails(payload, propertyId) {
+  const property = payload?.data?.property;
+  if (property && typeof property === "object") {
+    return property;
+  }
+
+  return getDemoPropertyById(propertyId);
+}
+
 function getMovingServices(payload) {
   const services = Array.isArray(payload?.data?.services) ? payload.data.services : [];
   return services.length ? services : DEMO_MOVING_SERVICES;
@@ -1600,9 +1631,9 @@ async function initHomePage() {
   }
 
   try {
-    const payload = await fetchJson(`${API_BASE_URL}${API_ENDPOINTS.featuredProperties}`);
+    const payload = await fetchJson(`${API_BASE_URL}${API_ENDPOINTS.featuredProperties}`).catch(() => null);
     console.info("initHomePage: fetched payload", { url: `${API_BASE_URL}${API_ENDPOINTS.featuredProperties}`, payload });
-    const properties = payload?.data?.properties || [];
+    const properties = resolvePropertyList(payload);
     container.innerHTML = "";
     if (!properties.length) {
       container.innerHTML = '<p class="status-message">No featured homes are available right now.</p>';
@@ -1618,7 +1649,7 @@ async function initHomePage() {
     hideLoading(loading);
   } catch (catchError) {
     hideLoading(loading);
-    showError(catchError.message || "Unable to load featured homes.", "api_error");
+    container.innerHTML = '<p class="status-message">Showing featured homes from the local showcase.</p>';
   }
 
   try {
@@ -1945,9 +1976,9 @@ async function loadSearchResults() {
   queryParams.set("limit", String(PAGE_CONFIG.pageSize));
 
   try {
-    const payload = await fetchJson(`${API_BASE_URL}${API_ENDPOINTS.searchProperties}?${queryParams.toString()}`);
+    const payload = await fetchJson(`${API_BASE_URL}${API_ENDPOINTS.searchProperties}?${queryParams.toString()}`).catch(() => null);
     console.info("loadSearchResults: fetched payload", { url: `${API_BASE_URL}${API_ENDPOINTS.searchProperties}?${queryParams.toString()}`, payload });
-    const properties = payload?.data?.properties || [];
+    const properties = resolvePropertyList(payload);
     const filteredProperties = filterProperties(properties, state.currentSearchFilters);
     const sortedProperties = sortProperties(filteredProperties, state.currentSearchFilters.sort || "newest");
     const totalItems = sortedProperties.length;
@@ -2003,8 +2034,8 @@ async function initPropertyPage() {
   clearError();
 
   try {
-    const payload = await fetchJson(`${API_BASE_URL}${API_ENDPOINTS.propertyDetails(propertyId)}`);
-    const property = payload?.data?.property;
+    const payload = await fetchJson(`${API_BASE_URL}${API_ENDPOINTS.propertyDetails(propertyId)}`).catch(() => null);
+    const property = resolvePropertyDetails(payload, propertyId);
     if (!property) {
       throw new Error("Property not found.");
     }
@@ -2072,8 +2103,10 @@ async function initPropertyPage() {
     }
 
     if (relatedContainer) {
-      const relatedPayload = await fetchJson(`${API_BASE_URL}${API_ENDPOINTS.relatedProperties}?type=${encodeURIComponent(property.propertyType || "")}&limit=${PAGE_CONFIG.relatedLimit}`);
-      const relatedProperties = relatedPayload?.data?.properties || [];
+      const relatedPayload = await fetchJson(`${API_BASE_URL}${API_ENDPOINTS.relatedProperties}?type=${encodeURIComponent(property.propertyType || "")}&limit=${PAGE_CONFIG.relatedLimit}`).catch(() => null);
+      const relatedProperties = Array.isArray(relatedPayload?.data?.properties) && relatedPayload.data.properties.length
+        ? relatedPayload.data.properties
+        : getDemoRelatedProperties(property.propertyType || "");
       relatedContainer.innerHTML = "";
       relatedProperties.forEach((relatedProperty) => {
         relatedContainer.appendChild(renderPropertyCard(relatedProperty));

@@ -11,7 +11,7 @@ const TABLE_ROWS_URL = TABLE_ID
 const API_TOKEN = process.env.BOTPRESS_API_TOKEN || '';
 const BOT_ID = process.env.BOTPRESS_BOT_ID || '';
 const DEFAULT_IMAGE = '';
-const HOUSE_IMAGE_DIR = path.resolve(__dirname, '..', '..', 'images', 'housing');
+const HOUSE_IMAGE_DIR = path.resolve(__dirname, '..', '..', 'images', 'houses');
 const MOVING_IMAGE_DIR = path.resolve(__dirname, '..', '..', 'images', 'moving');
 
 const HOUSE_IMAGE_MAP = {
@@ -60,16 +60,36 @@ function normalizeName(value) {
 
 function resolveLocalImagePath(imageMap, folder, propertyName) {
   const normalizedName = normalizeName(propertyName);
-  const fileName = imageMap[normalizedName];
-  if (!fileName) {
+  const directMatch = imageMap[normalizedName];
+  if (directMatch) {
+    const fullPath = path.join(folder, directMatch);
+    if (fs.existsSync(fullPath)) {
+      const workspaceRoot = path.resolve(__dirname, '..', '..');
+      const relativePath = path.relative(workspaceRoot, fullPath).replace(/\\/g, '/');
+      return relativePath ? relativePath : '';
+    }
+  }
+
+  if (!fs.existsSync(folder)) {
     return '';
   }
 
-  const fullPath = path.join(folder, fileName);
-  if (!fs.existsSync(fullPath)) {
+  const candidateFiles = fs.readdirSync(folder)
+    .filter((fileName) => /\.(jpg|jpeg|png|webp|gif)$/i.test(fileName))
+    .map((fileName) => path.basename(fileName));
+
+  const matchingFile = candidateFiles.find((fileName) => {
+    const normalizedFileName = normalizeName(path.basename(fileName, path.extname(fileName)));
+    return normalizedFileName === normalizedName
+      || normalizedFileName.includes(normalizedName)
+      || normalizedName.includes(normalizedFileName);
+  });
+
+  if (!matchingFile) {
     return '';
   }
 
+  const fullPath = path.join(folder, matchingFile);
   const workspaceRoot = path.resolve(__dirname, '..', '..');
   const relativePath = path.relative(workspaceRoot, fullPath).replace(/\\/g, '/');
   return relativePath ? relativePath : '';
