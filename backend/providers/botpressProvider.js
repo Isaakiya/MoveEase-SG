@@ -327,7 +327,7 @@ async function listProperties(filters = {}) {
   }
 
   const page = Number(filters.page) || 1;
-  const limit = Number(filters.limit) || 12;
+  const limit = Number(filters.limit) || 50;
   const totalItems = items.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / limit));
   const start = (page - 1) * limit;

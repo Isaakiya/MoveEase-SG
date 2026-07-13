@@ -2,7 +2,7 @@ const express = require('express');
 const provider = require('../providers');
 
 const router = express.Router();
-const DEFAULT_LIMIT = 12;
+const DEFAULT_LIMIT = 50;
 
 function createPagination(page, limit, totalItems) {
   return {

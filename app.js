@@ -24,7 +24,7 @@ const DEFAULT_FILTERS = {
 };
 
 const PAGE_CONFIG = {
-  pageSize: 12,
+  pageSize: 50,
   relatedLimit: 4
 };
 
@@ -101,9 +101,8 @@ async function ensureLocationAutocompleteSuggestions() {
   return locationAutocompleteState.pendingPromise;
 }
 
-const DEMO_PROPERTIES = [
+const DEMO_PROPERTY_TEMPLATES = [
   {
-    id: "prop-001",
     title: "Bright 3-Bedroom Condo",
     location: "Tampines",
     price: 980000,
@@ -118,7 +117,6 @@ const DEMO_PROPERTIES = [
     postedDate: "2026-06-15"
   },
   {
-    id: "prop-002",
     title: "Modern 2-Bedroom HDB",
     location: "Yishun",
     price: 680000,
@@ -133,7 +131,6 @@ const DEMO_PROPERTIES = [
     postedDate: "2026-06-20"
   },
   {
-    id: "prop-003",
     title: "Garden Terrace House",
     location: "Bishan",
     price: 1450000,
@@ -148,6 +145,27 @@ const DEMO_PROPERTIES = [
     postedDate: "2026-06-25"
   }
 ];
+
+function buildDemoPropertyList(total = 50) {
+  return Array.from({ length: total }, (_, index) => {
+    const template = DEMO_PROPERTY_TEMPLATES[index % DEMO_PROPERTY_TEMPLATES.length];
+    const variant = index + 1;
+
+    return {
+      ...template,
+      id: `prop-${String(variant).padStart(3, "0")}`,
+      title: `${template.title} ${variant}`,
+      price: template.price + index * 15000,
+      bedrooms: template.bedrooms + (index % 2),
+      bathrooms: template.bathrooms + (index % 2),
+      floorArea: template.floorArea + index * 35,
+      featured: true,
+      postedDate: `2026-07-${String((index % 28) + 1).padStart(2, "0")}`
+    };
+  });
+}
+
+const DEMO_PROPERTIES = buildDemoPropertyList(50);
 
 const DEMO_MOVING_SERVICES = [
   {
