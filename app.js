@@ -46,21 +46,30 @@ function collectLocationSuggestions(properties) {
   const suggestions = [];
 
   (Array.isArray(properties) ? properties : []).forEach((property) => {
+    const title = normalizeLocationSuggestion(property?.title);
     const location = normalizeLocationSuggestion(property?.location);
-    if (!location) {
+    const primaryText = title || location;
+
+    if (!primaryText) {
       return;
     }
 
-    const key = location.toLowerCase();
+    const key = primaryText.toLowerCase();
     if (seen.has(key)) {
       return;
     }
 
     seen.add(key);
-    suggestions.push(location);
+    suggestions.push({
+      suggestion: title ? `${title}${location ? ` — ${location}` : ""}` : location,
+      value: location,
+      title,
+      location,
+      propertyId: property?.id || null
+    });
   });
 
-  return suggestions.sort((left, right) => left.localeCompare(right));
+  return suggestions.sort((left, right) => left.suggestion.localeCompare(right.suggestion));
 }
 
 async function ensureLocationAutocompleteSuggestions() {
@@ -73,7 +82,11 @@ async function ensureLocationAutocompleteSuggestions() {
   }
 
   locationAutocompleteState.isLoading = true;
-  locationAutocompleteState.pendingPromise = fetchJson(`${API_BASE_URL}${API_ENDPOINTS.searchProperties}?limit=100`)
+  locationAutocompleteState.pendingPromise = fetchJson(
+    `${API_BASE_URL}${API_ENDPOINTS.searchProperties}?limit=100`,
+    {},
+    { success: true, message: "Loaded demo suggestions", data: { properties: getDemoPropertyList() } }
+  )
     .then((payload) => {
       const properties = payload?.data?.properties || [];
       const suggestions = collectLocationSuggestions(properties);
@@ -960,7 +973,7 @@ function bindMenuToggle() {
   });
 }
 
-async function fetchJson(url, options = {}) {
+async function fetchJson(url, options = {}, fallbackValue = null) {
   console.info("fetchJson: fetching", url);
 
   try {
@@ -984,6 +997,9 @@ async function fetchJson(url, options = {}) {
     return payload;
   } catch (error) {
     console.error("fetchJson: error fetching", url, error);
+    if (fallbackValue !== null) {
+      return fallbackValue;
+    }
     throw new Error(error.message || "Unable to load content right now.");
   }
 }
@@ -1631,7 +1647,11 @@ async function initHomePage() {
   }
 
   try {
-    const payload = await fetchJson(`${API_BASE_URL}${API_ENDPOINTS.featuredProperties}`).catch(() => null);
+    const payload = await fetchJson(
+      `${API_BASE_URL}${API_ENDPOINTS.featuredProperties}`,
+      {},
+      { success: true, message: "Loaded featured properties", data: { properties: getDemoPropertyList() } }
+    );
     console.info("initHomePage: fetched payload", { url: `${API_BASE_URL}${API_ENDPOINTS.featuredProperties}`, payload });
     const properties = resolvePropertyList(payload);
     container.innerHTML = "";
@@ -1707,8 +1727,9 @@ function rankLocationMatches(query, suggestions) {
     return [];
   }
 
-  const scoredSuggestions = suggestions.map((suggestion) => {
-    const normalizedSuggestion = suggestion.toLowerCase();
+  const scoredSuggestions = suggestions.map((suggestionItem) => {
+    const suggestionText = typeof suggestionItem === "string" ? suggestionItem : suggestionItem.suggestion;
+    const normalizedSuggestion = suggestionText.toLowerCase();
     const suggestionWords = normalizedSuggestion.split(/\s+/);
 
     let score = 0;
@@ -1736,7 +1757,7 @@ function rankLocationMatches(query, suggestions) {
       }
     }
 
-    return { suggestion, score };
+    return { ...suggestionItem, suggestion: suggestionText, score };
   });
 
   return scoredSuggestions
@@ -1788,6 +1809,12 @@ function initLocationAutocomplete(form) {
 
   let activeIndex = -1;
 
+  void ensureLocationAutocompleteSuggestions().then(() => {
+    if (String(input.value || "").trim()) {
+      renderSuggestions(input.value);
+    }
+  });
+
   const renderSuggestions = (query) => {
     const q = String(query || "").trim();
     if (!q) {
@@ -1821,7 +1848,7 @@ function initLocationAutocomplete(form) {
 
     listbox.innerHTML = visibleSuggestions
       .map((item, index) => `
-        <button class="autocomplete__option" type="button" id="${listboxId}-option-${index}" role="option" data-index="${index}" aria-selected="${index === activeIndex}">
+        <button class="autocomplete__option" type="button" id="${listboxId}-option-${index}" role="option" data-index="${index}" data-property-id="${item.propertyId || ""}" data-suggestion-value="${item.value || ""}" aria-selected="${index === activeIndex}">
           ${item.suggestion}
         </button>
       `)
@@ -1889,12 +1916,26 @@ function initLocationAutocomplete(form) {
       input.setAttribute("aria-activedescendant", options[activeIndex].id);
     } else if (event.key === "Enter" && activeIndex >= 0) {
       event.preventDefault();
-      input.value = options[activeIndex].textContent.trim();
-      hideSuggestions();
+      applySuggestion(options[activeIndex]);
     } else if (event.key === "Escape") {
       hideSuggestions();
     }
   });
+
+  const applySuggestion = (option) => {
+    if (!option) {
+      return;
+    }
+
+    const propertyId = option.dataset.propertyId;
+    if (propertyId) {
+      window.location.assign(`property.html?id=${encodeURIComponent(propertyId)}`);
+      return;
+    }
+
+    input.value = option.dataset.suggestionValue || option.textContent.trim();
+    hideSuggestions();
+  };
 
   listbox.addEventListener("click", (event) => {
     const option = event.target.closest(".autocomplete__option");
@@ -1902,8 +1943,7 @@ function initLocationAutocomplete(form) {
       return;
     }
 
-    input.value = option.textContent.trim();
-    hideSuggestions();
+    applySuggestion(option);
   });
 
   document.addEventListener("click", (event) => {
@@ -1976,7 +2016,11 @@ async function loadSearchResults() {
   queryParams.set("limit", String(PAGE_CONFIG.pageSize));
 
   try {
-    const payload = await fetchJson(`${API_BASE_URL}${API_ENDPOINTS.searchProperties}?${queryParams.toString()}`).catch(() => null);
+    const payload = await fetchJson(
+      `${API_BASE_URL}${API_ENDPOINTS.searchProperties}?${queryParams.toString()}`,
+      {},
+      { success: true, message: "Loaded search results", data: { properties: getDemoPropertyList() } }
+    );
     console.info("loadSearchResults: fetched payload", { url: `${API_BASE_URL}${API_ENDPOINTS.searchProperties}?${queryParams.toString()}`, payload });
     const properties = resolvePropertyList(payload);
     const filteredProperties = filterProperties(properties, state.currentSearchFilters);
@@ -2034,7 +2078,11 @@ async function initPropertyPage() {
   clearError();
 
   try {
-    const payload = await fetchJson(`${API_BASE_URL}${API_ENDPOINTS.propertyDetails(propertyId)}`).catch(() => null);
+    const payload = await fetchJson(
+      `${API_BASE_URL}${API_ENDPOINTS.propertyDetails(propertyId)}`,
+      {},
+      { success: true, message: "Loaded property details", data: { property: getDemoPropertyById(propertyId) } }
+    );
     const property = resolvePropertyDetails(payload, propertyId);
     if (!property) {
       throw new Error("Property not found.");
@@ -2103,7 +2151,11 @@ async function initPropertyPage() {
     }
 
     if (relatedContainer) {
-      const relatedPayload = await fetchJson(`${API_BASE_URL}${API_ENDPOINTS.relatedProperties}?type=${encodeURIComponent(property.propertyType || "")}&limit=${PAGE_CONFIG.relatedLimit}`).catch(() => null);
+      const relatedPayload = await fetchJson(
+        `${API_BASE_URL}${API_ENDPOINTS.relatedProperties}?type=${encodeURIComponent(property.propertyType || "")}&limit=${PAGE_CONFIG.relatedLimit}`,
+        {},
+        { success: true, message: "Loaded related properties", data: { properties: getDemoRelatedProperties(property.propertyType || "") } }
+      );
       const relatedProperties = Array.isArray(relatedPayload?.data?.properties) && relatedPayload.data.properties.length
         ? relatedPayload.data.properties
         : getDemoRelatedProperties(property.propertyType || "");
