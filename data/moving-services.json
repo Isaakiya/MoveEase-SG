@@ -1,0 +1,32 @@
+{
+  "success": true,
+  "message": "Moving services loaded from local data",
+  "data": {
+    "services": [
+      {
+        "id": "svc-001",
+        "title": "Full Move Assistance",
+        "description": "End-to-end support for your relocation.",
+        "price": 450,
+        "category": "Premium",
+        "image": "images/moving/fullmove.jpg",
+        "ctaLabel": "Book now",
+        "ctaUrl": "moving-booking.html",
+        "featured": true,
+        "duration": "4 hours"
+      },
+      {
+        "id": "svc-002",
+        "title": "Packing & Unpacking",
+        "description": "Careful packing with premium materials.",
+        "price": 220,
+        "category": "Standard",
+        "image": "images/moving/packing&unpacking.jpg",
+        "ctaLabel": "Get a quote",
+        "ctaUrl": "moving-booking.html",
+        "featured": true,
+        "duration": "2 hours"
+      }
+    ]
+  }
+}

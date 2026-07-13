@@ -1,12 +1,29 @@
-const API_BASE_URL = "http://localhost:3001";
+const API_BASE_URL = "./";
 
 const API_ENDPOINTS = {
-  featuredProperties: "/api/properties?limit=50",
-  searchProperties: "/api/properties",
-  propertyDetails: (id) => `/api/properties/${id}`,
-  relatedProperties: "/api/properties/related",
-  movingServices: "/api/moving/services"
+  featuredProperties: "data/properties.json",
+  searchProperties: "data/properties.json",
+  propertyDetails: (id) => `data/properties.json?propertyId=${encodeURIComponent(id)}`,
+  relatedProperties: "data/properties.json",
+  movingServices: "data/moving-services.json"
 };
+
+function buildApiCandidates(endpoint) {
+  const normalizedEndpoint = endpoint.startsWith("/") ? endpoint : `${API_BASE_URL}${endpoint}`;
+  const candidates = [];
+
+  if (typeof window !== "undefined" && window.location?.href) {
+    candidates.push(new URL(normalizedEndpoint, window.location.href).toString());
+  }
+
+  candidates.push(normalizedEndpoint);
+
+  return Array.from(new Set(candidates));
+}
+
+function getApiUrl(endpoint) {
+  return buildApiCandidates(endpoint);
+}
 
 const STORAGE_KEYS = {
   favourites: "favourites",
@@ -83,7 +100,7 @@ async function ensureLocationAutocompleteSuggestions() {
 
   locationAutocompleteState.isLoading = true;
   locationAutocompleteState.pendingPromise = fetchJson(
-    `${API_BASE_URL}${API_ENDPOINTS.searchProperties}?limit=100`,
+    getApiUrl(`${API_ENDPOINTS.searchProperties}?limit=100`),
     {},
     { success: true, message: "Loaded demo suggestions", data: { properties: getDemoPropertyList() } }
   )
@@ -992,34 +1009,43 @@ function bindMenuToggle() {
 }
 
 async function fetchJson(url, options = {}, fallbackValue = null) {
-  console.info("fetchJson: fetching", url);
+  const candidateUrls = Array.isArray(url) ? url : [url];
+  const errors = [];
 
-  try {
-    const response = await fetch(url, options);
-    console.info("fetchJson: response status", response.status, response.statusText, url);
+  for (const candidateUrl of candidateUrls) {
+    console.info("fetchJson: fetching", candidateUrl);
 
-    const payload = await response.json().catch(() => null);
-    if (!response.ok) {
-      const message = payload?.message || `Request failed with status ${response.status}`;
-      throw new Error(message);
+    try {
+      const response = await fetch(candidateUrl, options);
+      console.info("fetchJson: response status", response.status, response.statusText, candidateUrl);
+
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        const message = payload?.message || `Request failed with status ${response.status}`;
+        throw new Error(message);
+      }
+
+      if (!payload || payload.success === false) {
+        throw new Error(payload?.message || "The request returned an invalid response.");
+      }
+
+      if (!payload?.data) {
+        throw new Error("The request did not include any data.");
+      }
+
+      return payload;
+    } catch (error) {
+      console.error("fetchJson: error fetching", candidateUrl, error);
+      errors.push(error);
     }
-
-    if (!payload || payload.success === false) {
-      throw new Error(payload?.message || "The request returned an invalid response.");
-    }
-
-    if (!payload?.data) {
-      throw new Error("The request did not include any data.");
-    }
-
-    return payload;
-  } catch (error) {
-    console.error("fetchJson: error fetching", url, error);
-    if (fallbackValue !== null) {
-      return fallbackValue;
-    }
-    throw new Error(error.message || "Unable to load content right now.");
   }
+
+  const lastError = errors[errors.length - 1];
+  if (fallbackValue !== null) {
+    return fallbackValue;
+  }
+
+  throw new Error(lastError?.message || "Unable to load content right now.");
 }
 
 function getFavourites() {
@@ -1220,6 +1246,12 @@ function resolvePropertyDetails(payload, propertyId) {
   const property = payload?.data?.property;
   if (property && typeof property === "object") {
     return property;
+  }
+
+  const properties = Array.isArray(payload?.data?.properties) ? payload.data.properties : [];
+  const matchedProperty = properties.find((candidate) => candidate?.id === propertyId);
+  if (matchedProperty && typeof matchedProperty === "object") {
+    return matchedProperty;
   }
 
   return getDemoPropertyById(propertyId);
@@ -1666,11 +1698,11 @@ async function initHomePage() {
 
   try {
     const payload = await fetchJson(
-      `${API_BASE_URL}${API_ENDPOINTS.featuredProperties}`,
+      getApiUrl(API_ENDPOINTS.featuredProperties),
       {},
       { success: true, message: "Loaded featured properties", data: { properties: getDemoPropertyList() } }
     );
-    console.info("initHomePage: fetched payload", { url: `${API_BASE_URL}${API_ENDPOINTS.featuredProperties}`, payload });
+    console.info("initHomePage: fetched payload", { url: API_ENDPOINTS.featuredProperties, payload });
     const properties = resolvePropertyList(payload);
     container.innerHTML = "";
     if (!properties.length) {
@@ -1692,7 +1724,11 @@ async function initHomePage() {
 
   try {
     const preview = document.getElementById("moving-preview");
-    const payload = await fetchJson(`${API_BASE_URL}${API_ENDPOINTS.movingServices}`);
+    const payload = await fetchJson(
+      getApiUrl(API_ENDPOINTS.movingServices),
+      {},
+      { success: true, message: "Loaded moving services", data: { services: DEMO_MOVING_SERVICES } }
+    );
     const services = getMovingServices(payload);
     if (preview) {
       preview.innerHTML = "";
@@ -1705,7 +1741,7 @@ async function initHomePage() {
       getMovingServices().slice(0, 3).forEach((service) => renderMovingServiceCard(service, preview));
     }
     if (error) {
-      error.textContent = catchError.message || "Showing recommended moving services.";
+      error.textContent = "Showing recommended moving services.";
       error.hidden = false;
     }
   }
@@ -2035,11 +2071,11 @@ async function loadSearchResults() {
 
   try {
     const payload = await fetchJson(
-      `${API_BASE_URL}${API_ENDPOINTS.searchProperties}?${queryParams.toString()}`,
+      getApiUrl(`${API_ENDPOINTS.searchProperties}?${queryParams.toString()}`),
       {},
       { success: true, message: "Loaded search results", data: { properties: getDemoPropertyList() } }
     );
-    console.info("loadSearchResults: fetched payload", { url: `${API_BASE_URL}${API_ENDPOINTS.searchProperties}?${queryParams.toString()}`, payload });
+    console.info("loadSearchResults: fetched payload", { url: `${API_ENDPOINTS.searchProperties}?${queryParams.toString()}`, payload });
     const properties = resolvePropertyList(payload);
     const filteredProperties = filterProperties(properties, state.currentSearchFilters);
     const sortedProperties = sortProperties(filteredProperties, state.currentSearchFilters.sort || "newest");
@@ -2097,7 +2133,7 @@ async function initPropertyPage() {
 
   try {
     const payload = await fetchJson(
-      `${API_BASE_URL}${API_ENDPOINTS.propertyDetails(propertyId)}`,
+      getApiUrl(API_ENDPOINTS.propertyDetails(propertyId)),
       {},
       { success: true, message: "Loaded property details", data: { property: getDemoPropertyById(propertyId) } }
     );
@@ -2170,12 +2206,14 @@ async function initPropertyPage() {
 
     if (relatedContainer) {
       const relatedPayload = await fetchJson(
-        `${API_BASE_URL}${API_ENDPOINTS.relatedProperties}?type=${encodeURIComponent(property.propertyType || "")}&limit=${PAGE_CONFIG.relatedLimit}`,
+        getApiUrl(`${API_ENDPOINTS.relatedProperties}?type=${encodeURIComponent(property.propertyType || "")}&limit=${PAGE_CONFIG.relatedLimit}`),
         {},
         { success: true, message: "Loaded related properties", data: { properties: getDemoRelatedProperties(property.propertyType || "") } }
       );
       const relatedProperties = Array.isArray(relatedPayload?.data?.properties) && relatedPayload.data.properties.length
         ? relatedPayload.data.properties
+          .filter((candidate) => !property.propertyType || candidate.propertyType === property.propertyType)
+          .slice(0, PAGE_CONFIG.relatedLimit)
         : getDemoRelatedProperties(property.propertyType || "");
       relatedContainer.innerHTML = "";
       relatedProperties.forEach((relatedProperty) => {
@@ -2349,7 +2387,11 @@ async function initMovingPage() {
 
   showLoading(loading);
   try {
-    const payload = await fetchJson(`${API_BASE_URL}${API_ENDPOINTS.movingServices}`);
+    const payload = await fetchJson(
+      getApiUrl(API_ENDPOINTS.movingServices),
+      {},
+      { success: true, message: "Loaded moving services", data: { services: DEMO_MOVING_SERVICES } }
+    );
     const services = getMovingServices(payload);
     container.innerHTML = "";
     if (!services.length) {

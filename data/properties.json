@@ -1,0 +1,924 @@
+{
+  "success": true,
+  "message": "Properties loaded from Botpress",
+  "data": {
+    "properties": [
+      {
+        "id": "1",
+        "title": "Wallich Residence",
+        "location": "Downtown Core",
+        "price": 4359150,
+        "propertyType": "Condo",
+        "bedrooms": 1,
+        "bathrooms": 1,
+        "floorArea": 614,
+        "images": [
+          "images/houses/wallich_residence.jpg"
+        ],
+        "description": "",
+        "amenities": [
+          "Tanjong Pagar Centre",
+          "Maxwell Food Centre"
+        ],
+        "schools": [
+          "Cantonment Primary School"
+        ],
+        "mrt": [
+          "Tanjong Pagar"
+        ],
+        "nearestMrt": "Tanjong Pagar",
+        "tenure": "99-year leasehold",
+        "yearBuilt": 2017,
+        "maintenanceFee": 450,
+        "environment": "Urban High-Density",
+        "featured": false,
+        "postedDate": "2026-07-12T14:21:54.804Z"
+      },
+      {
+        "id": "2",
+        "title": "Watten House",
+        "location": "Bukit Timah",
+        "price": 3842510,
+        "propertyType": "Condo",
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "floorArea": 1190,
+        "images": [
+          "images/houses/watten_house.jpg"
+        ],
+        "description": "",
+        "amenities": [
+          "Coronation Shopping Plaza"
+        ],
+        "schools": [
+          "Raffles Girls' Primary School"
+        ],
+        "mrt": [
+          "Tan Kah Kee"
+        ],
+        "nearestMrt": "Tan Kah Kee",
+        "tenure": "Freehold",
+        "yearBuilt": 2026,
+        "maintenanceFee": 700,
+        "environment": "Low-Density Residential",
+        "featured": false,
+        "postedDate": "2026-07-12T14:21:54.804Z"
+      },
+      {
+        "id": "3",
+        "title": "Pinnacle@Duxton",
+        "location": "Central Area",
+        "price": 1450000,
+        "propertyType": "HDB Flat",
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "floorArea": 1151,
+        "images": [
+          "images/houses/The_Pinnacle@Duxton.jpg"
+        ],
+        "description": "",
+        "amenities": [
+          "Duxton Hill",
+          "Tanjong Pagar Hawker Centre"
+        ],
+        "schools": [
+          "Cantonment Primary School"
+        ],
+        "mrt": [
+          "Outram Park"
+        ],
+        "nearestMrt": "Outram Park",
+        "tenure": "99-year leasehold",
+        "yearBuilt": 2011,
+        "maintenanceFee": 120,
+        "environment": "Urban High-Density",
+        "featured": false,
+        "postedDate": "2026-07-12T14:21:54.804Z"
+      },
+      {
+        "id": "4",
+        "title": "The Reserve Residences",
+        "location": "Bukit Timah",
+        "price": 2489650,
+        "propertyType": "Condo",
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "floorArea": 1010,
+        "images": [
+          "images/houses/the_reserve_residences.jpg"
+        ],
+        "description": "",
+        "amenities": [
+          "Bukit Timah Nature Reserve",
+          "Integrated Transport Hub"
+        ],
+        "schools": [
+          "Pei Hwa Presbyterian Primary School"
+        ],
+        "mrt": [
+          "Beauty World"
+        ],
+        "nearestMrt": "Beauty World",
+        "tenure": "99-year leasehold",
+        "yearBuilt": 2027,
+        "maintenanceFee": 650,
+        "environment": "Nature-Integrated",
+        "featured": false,
+        "postedDate": "2026-07-12T14:21:54.804Z"
+      },
+      {
+        "id": "5",
+        "title": "Grand Dunman",
+        "location": "Geylang",
+        "price": 2341750,
+        "propertyType": "Condo",
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "floorArea": 950,
+        "images": [
+          "images/houses/the_granddunman.jpg"
+        ],
+        "description": "",
+        "amenities": [
+          "Old Airport Road Food Centre"
+        ],
+        "schools": [
+          "Kong Hwa School"
+        ],
+        "mrt": [
+          "Dakota"
+        ],
+        "nearestMrt": "Dakota",
+        "tenure": "99-year leasehold",
+        "yearBuilt": 2027,
+        "maintenanceFee": 600,
+        "environment": "Urban Fringe",
+        "featured": false,
+        "postedDate": "2026-07-12T14:21:54.804Z"
+      },
+      {
+        "id": "6",
+        "title": "Lentoria",
+        "location": "Ang Mo Kio",
+        "price": 1922830,
+        "propertyType": "Condo",
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "floorArea": 910,
+        "images": [
+          "images/houses/lentoria_condo.jpg"
+        ],
+        "description": "",
+        "amenities": [
+          "Lentor Modern Mall"
+        ],
+        "schools": [
+          "CHIJ St. Nicholas Girls' School"
+        ],
+        "mrt": [
+          "Lentor"
+        ],
+        "nearestMrt": "Lentor",
+        "tenure": "99-year leasehold",
+        "yearBuilt": 2027,
+        "maintenanceFee": 550,
+        "environment": "Suburban Residential",
+        "featured": false,
+        "postedDate": "2026-07-12T14:21:54.804Z"
+      },
+      {
+        "id": "7",
+        "title": "Hillock Green",
+        "location": "Ang Mo Kio",
+        "price": 2155260,
+        "propertyType": "Condo",
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "floorArea": 1020,
+        "images": [
+          "images/houses/Hillock_Green.jpg"
+        ],
+        "description": "",
+        "amenities": [
+          "Hillock Park"
+        ],
+        "schools": [
+          "Anderson Primary School"
+        ],
+        "mrt": [
+          "Lentor"
+        ],
+        "nearestMrt": "Lentor",
+        "tenure": "99-year leasehold",
+        "yearBuilt": 2027,
+        "maintenanceFee": 580,
+        "environment": "Park-Facing",
+        "featured": false,
+        "postedDate": "2026-07-12T14:21:54.804Z"
+      },
+      {
+        "id": "8",
+        "title": "Sengkang Grand Residences",
+        "location": "Sengkang",
+        "price": 2134130,
+        "propertyType": "Condo",
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "floorArea": 1010,
+        "images": [
+          "images/houses/sengkang_grandresidences.jpg"
+        ],
+        "description": "",
+        "amenities": [
+          "Sengkang Grand Mall",
+          "Hawker Centre"
+        ],
+        "schools": [
+          "Palm View Primary School"
+        ],
+        "mrt": [
+          "Buangkok"
+        ],
+        "nearestMrt": "Buangkok",
+        "tenure": "99-year leasehold",
+        "yearBuilt": 2023,
+        "maintenanceFee": 650,
+        "environment": "Integrated Hub",
+        "featured": false,
+        "postedDate": "2026-07-12T14:21:54.804Z"
+      },
+      {
+        "id": "9",
+        "title": "Pasir Ris 8",
+        "location": "Pasir Ris",
+        "price": 2240000,
+        "propertyType": "Condo",
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "floorArea": 1060,
+        "images": [
+          "images/houses/Pasir_Ris_8.jpg"
+        ],
+        "description": "",
+        "amenities": [
+          "White Sands Mall",
+          "Pasir Ris Central Hawker Centre"
+        ],
+        "schools": [
+          "Elias Park Primary School"
+        ],
+        "mrt": [
+          "Pasir Ris"
+        ],
+        "nearestMrt": "Pasir Ris",
+        "tenure": "99-year leasehold",
+        "yearBuilt": 2026,
+        "maintenanceFee": 680,
+        "environment": "Suburban Hub",
+        "featured": false,
+        "postedDate": "2026-07-12T14:21:54.804Z"
+      },
+      {
+        "id": "10",
+        "title": "The Woodleigh Residences",
+        "location": "Bidadari",
+        "price": 2637550,
+        "propertyType": "Condo",
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "floorArea": 1070,
+        "images": [
+          "images/houses/the_woodleigh_residences.jpg"
+        ],
+        "description": "",
+        "amenities": [
+          "The Woodleigh Mall",
+          "Bidadari Park"
+        ],
+        "schools": [
+          "Cedar Primary School"
+        ],
+        "mrt": [
+          "Woodleigh"
+        ],
+        "nearestMrt": "Woodleigh",
+        "tenure": "99-year leasehold",
+        "yearBuilt": 2022,
+        "maintenanceFee": 680,
+        "environment": "New Mature Estate",
+        "featured": false,
+        "postedDate": "2026-07-12T14:21:54.804Z"
+      },
+      {
+        "id": "11",
+        "title": "One Bernam",
+        "location": "Tanjong Pagar",
+        "price": 2282900,
+        "propertyType": "Condo",
+        "bedrooms": 2,
+        "bathrooms": 2,
+        "floorArea": 707,
+        "images": [
+          "images/houses/one_bernam.jpg"
+        ],
+        "description": "",
+        "amenities": [
+          "100 AM Mall"
+        ],
+        "schools": [
+          "Cantonment Primary School"
+        ],
+        "mrt": [
+          "Tanjong Pagar"
+        ],
+        "nearestMrt": "Tanjong Pagar",
+        "tenure": "99-year leasehold",
+        "yearBuilt": 2026,
+        "maintenanceFee": 550,
+        "environment": "Urban Core",
+        "featured": false,
+        "postedDate": "2026-07-12T14:21:54.804Z"
+      },
+      {
+        "id": "12",
+        "title": "Tembusu Grand",
+        "location": "Marine Parade",
+        "price": 2440350,
+        "propertyType": "Condo",
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "floorArea": 990,
+        "images": [
+          "images/houses/tembusu_grand.jpg"
+        ],
+        "description": "",
+        "amenities": [
+          "Parkway Parade"
+        ],
+        "schools": [
+          "Tanjong Katong Primary School"
+        ],
+        "mrt": [
+          "Tanjong Katong"
+        ],
+        "nearestMrt": "Tanjong Katong",
+        "tenure": "99-year leasehold",
+        "yearBuilt": 2028,
+        "maintenanceFee": 650,
+        "environment": "Heritage Residential",
+        "featured": false,
+        "postedDate": "2026-07-12T14:21:54.804Z"
+      },
+      {
+        "id": "13",
+        "title": "The Continuum",
+        "location": "Geylang",
+        "price": 2662200,
+        "propertyType": "Condo",
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "floorArea": 1080,
+        "images": [
+          "images/houses/the_continuum.jpg"
+        ],
+        "description": "",
+        "amenities": [
+          "PLQ Mall"
+        ],
+        "schools": [
+          "Kong Hwa School"
+        ],
+        "mrt": [
+          "Dakota"
+        ],
+        "nearestMrt": "Dakota",
+        "tenure": "Freehold",
+        "yearBuilt": 2027,
+        "maintenanceFee": 700,
+        "environment": "Low-Density Area",
+        "featured": false,
+        "postedDate": "2026-07-12T14:21:54.804Z"
+      },
+      {
+        "id": "14",
+        "title": "Amo Residence",
+        "location": "Ang Mo Kio",
+        "price": 2007350,
+        "propertyType": "Condo",
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "floorArea": 950,
+        "images": [
+          "images/houses/amo_residence.jpg"
+        ],
+        "description": "",
+        "amenities": [
+          "Bishan-Ang Mo Kio Park"
+        ],
+        "schools": [
+          "CHIj St. Nicholas Girls' School"
+        ],
+        "mrt": [
+          "Mayflower"
+        ],
+        "nearestMrt": "Mayflower",
+        "tenure": "99-year leasehold",
+        "yearBuilt": 2026,
+        "maintenanceFee": 600,
+        "environment": "Park-Side Residential",
+        "featured": false,
+        "postedDate": "2026-07-12T14:21:54.804Z"
+      },
+      {
+        "id": "15",
+        "title": "Lentor Modern",
+        "location": "Ang Mo Kio",
+        "price": 2030000,
+        "propertyType": "Condo",
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "floorArea": 961,
+        "images": [
+          "images/houses/lentor_modern.jpg"
+        ],
+        "description": "",
+        "amenities": [
+          "Integrated Supermarket/Retail"
+        ],
+        "schools": [
+          "Anderson Primary School"
+        ],
+        "mrt": [
+          "Lentor"
+        ],
+        "nearestMrt": "Lentor",
+        "tenure": "99-year leasehold",
+        "yearBuilt": 2026,
+        "maintenanceFee": 650,
+        "environment": "Integrated Transit-Oriented",
+        "featured": false,
+        "postedDate": "2026-07-12T14:21:54.804Z"
+      },
+      {
+        "id": "16",
+        "title": "Sceneca Residence",
+        "location": "Tanah Merah",
+        "price": 1880570,
+        "propertyType": "Condo",
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "floorArea": 890,
+        "images": [
+          "images/houses/sceneca_residence.jpg"
+        ],
+        "description": "",
+        "amenities": [
+          "Bedok Food Centre"
+        ],
+        "schools": [
+          "Temasek Primary School"
+        ],
+        "mrt": [
+          "Tanah Merah"
+        ],
+        "nearestMrt": "Tanah Merah",
+        "tenure": "99-year leasehold",
+        "yearBuilt": 2026,
+        "maintenanceFee": 600,
+        "environment": "Transit Hub",
+        "featured": false,
+        "postedDate": "2026-07-12T14:21:54.804Z"
+      },
+      {
+        "id": "17",
+        "title": "Midtown Modern",
+        "location": "Rochor",
+        "price": 3448570,
+        "propertyType": "Condo",
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "floorArea": 1068,
+        "images": [
+          "images/houses/midtown_modern.jpg"
+        ],
+        "description": "",
+        "amenities": [
+          "Bugis Junction",
+          "Guoco Midtown"
+        ],
+        "schools": [
+          "St. Margaret's Primary School"
+        ],
+        "mrt": [
+          "Bugis"
+        ],
+        "nearestMrt": "Bugis",
+        "tenure": "99-year leasehold",
+        "yearBuilt": 2024,
+        "maintenanceFee": 750,
+        "environment": "Integrated Core",
+        "featured": false,
+        "postedDate": "2026-07-12T14:21:54.804Z"
+      },
+      {
+        "id": "18",
+        "title": "The Botany at Dairy Farm",
+        "location": "Bukit Panjang",
+        "price": 2182730,
+        "propertyType": "Condo",
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "floorArea": 1033,
+        "images": [
+          "images/houses/the_botany_at_dairy_farm.jpg"
+        ],
+        "description": "",
+        "amenities": [
+          "Dairy Farm Nature Park",
+          "Rail Mall"
+        ],
+        "schools": [
+          "CHIJ Our Lady Queen of Peace"
+        ],
+        "mrt": [
+          "Hillview"
+        ],
+        "nearestMrt": "Hillview",
+        "tenure": "99-year leasehold",
+        "yearBuilt": 2027,
+        "maintenanceFee": 550,
+        "environment": "Nature-Facing Residential",
+        "featured": false,
+        "postedDate": "2026-07-12T14:21:54.804Z"
+      },
+      {
+        "id": "19",
+        "title": "Skywaters Residences",
+        "location": "Downtown Core",
+        "price": 4520600,
+        "propertyType": "Condo",
+        "bedrooms": 3,
+        "bathrooms": 3,
+        "floorArea": 1400,
+        "images": [
+          "images/houses/skywaters_residences.jpg"
+        ],
+        "description": "",
+        "amenities": [
+          "CBD Commercial Hub"
+        ],
+        "schools": [
+          "Cantonment Primary School"
+        ],
+        "mrt": [
+          "Tanjong Pagar"
+        ],
+        "nearestMrt": "Tanjong Pagar",
+        "tenure": "99-year leasehold",
+        "yearBuilt": 2028,
+        "maintenanceFee": 1200,
+        "environment": "Urban Mega-Hub",
+        "featured": false,
+        "postedDate": "2026-07-12T14:21:54.804Z"
+      },
+      {
+        "id": "20",
+        "title": "Kovan Jewel",
+        "location": "Hougang",
+        "price": 2260910,
+        "propertyType": "Condo",
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "floorArea": 1070,
+        "images": [
+          "images/houses/kovan_jewel.jpg"
+        ],
+        "description": "",
+        "amenities": [
+          "Kovan Market",
+          "Heartland Mall"
+        ],
+        "schools": [
+          "Paya Lebar Methodist Girls' School"
+        ],
+        "mrt": [
+          "Kovan"
+        ],
+        "nearestMrt": "Kovan",
+        "tenure": "Freehold",
+        "yearBuilt": 2025,
+        "maintenanceFee": 600,
+        "environment": "Landed Enclave",
+        "featured": false,
+        "postedDate": "2026-07-12T14:21:54.804Z"
+      },
+      {
+        "id": "21",
+        "title": "Dawson Sky Terrace",
+        "location": "Queenstown",
+        "price": 1300000,
+        "propertyType": "HDB Flat",
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "floorArea": 1054,
+        "images": [
+          "images/houses/skyterrace@dawson.jpg"
+        ],
+        "description": "",
+        "amenities": [
+          "Margaret Drive Hawker Centre"
+        ],
+        "schools": [
+          "Queenstown Primary School"
+        ],
+        "mrt": [
+          "Queenstown"
+        ],
+        "nearestMrt": "Queenstown",
+        "tenure": "99-year leasehold",
+        "yearBuilt": 2015,
+        "maintenanceFee": 90,
+        "environment": "Sustainable High-Rise",
+        "featured": false,
+        "postedDate": "2026-07-12T14:21:54.804Z"
+      },
+      {
+        "id": "22",
+        "title": "Ghim Moh Ascent",
+        "location": "Queenstown",
+        "price": 1150000,
+        "propertyType": "HDB Flat",
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "floorArea": 1001,
+        "images": [
+          "images/houses/ghim_moh_ascent.jpg"
+        ],
+        "description": "",
+        "amenities": [
+          "Star Vista",
+          "Ghim Moh Market"
+        ],
+        "schools": [
+          "Henry Park Primary School"
+        ],
+        "mrt": [
+          "Buona Vista"
+        ],
+        "nearestMrt": "Buona Vista",
+        "tenure": "99-year leasehold",
+        "yearBuilt": 2022,
+        "maintenanceFee": 95,
+        "environment": "Educational Hub",
+        "featured": false,
+        "postedDate": "2026-07-12T14:21:54.804Z"
+      },
+      {
+        "id": "23",
+        "title": "SkyOasis @ Dawson",
+        "location": "Queenstown",
+        "price": 1250000,
+        "propertyType": "HDB Flat",
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "floorArea": 1011,
+        "images": [
+          "images/houses/skyoasis_dawson.jpg"
+        ],
+        "description": "",
+        "amenities": [
+          "Dawson Place Mall"
+        ],
+        "schools": [
+          "Queenstown Primary School"
+        ],
+        "mrt": [
+          "Queenstown"
+        ],
+        "nearestMrt": "Queenstown",
+        "tenure": "99-year leasehold",
+        "yearBuilt": 2021,
+        "maintenanceFee": 92,
+        "environment": "Park-Connector Lifestyle",
+        "featured": false,
+        "postedDate": "2026-07-12T14:21:54.804Z"
+      },
+      {
+        "id": "24",
+        "title": "The Woodleigh (HDB)",
+        "location": "Bidadari",
+        "price": 1050000,
+        "propertyType": "HDB Flat",
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "floorArea": 1001,
+        "images": [
+          "images/houses/woodleigh_HDB.jpg"
+        ],
+        "description": "",
+        "amenities": [
+          "Woodleigh Mall"
+        ],
+        "schools": [
+          "Maris Stella High School"
+        ],
+        "mrt": [
+          "Woodleigh"
+        ],
+        "nearestMrt": "Woodleigh",
+        "tenure": "99-year leasehold",
+        "yearBuilt": 2019,
+        "maintenanceFee": 85,
+        "environment": "Modern Residential Park",
+        "featured": false,
+        "postedDate": "2026-07-12T14:21:54.804Z"
+      },
+      {
+        "id": "25",
+        "title": "McNair Towers",
+        "location": "Kallang/Whampoa",
+        "price": 1180000,
+        "propertyType": "HDB Flat",
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "floorArea": 1001,
+        "images": [
+          "images/houses/mcnair_towers.jpg"
+        ],
+        "description": "",
+        "amenities": [
+          "Whampoa Drive Food Centre"
+        ],
+        "schools": [
+          "Hong Wen School"
+        ],
+        "mrt": [
+          "Boon Keng"
+        ],
+        "nearestMrt": "Boon Keng",
+        "tenure": "99-year leasehold",
+        "yearBuilt": 2016,
+        "maintenanceFee": 88,
+        "environment": "City Fringe",
+        "featured": false,
+        "postedDate": "2026-07-12T14:21:54.804Z"
+      },
+      {
+        "id": "26",
+        "title": "Tampines GreenRidges",
+        "location": "Tampines",
+        "price": 880000,
+        "propertyType": "HDB Flat",
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "floorArea": 1001,
+        "images": [
+          "images/houses/Tampines_GreenRidges.jpg"
+        ],
+        "description": "",
+        "amenities": [
+          "Our Tampines Hub"
+        ],
+        "schools": [
+          "St. Hilda's Primary School"
+        ],
+        "mrt": [
+          "Tampines West"
+        ],
+        "nearestMrt": "Tampines West",
+        "tenure": "99-year leasehold",
+        "yearBuilt": 2017,
+        "maintenanceFee": 80,
+        "environment": "Regional Hub Residential",
+        "featured": false,
+        "postedDate": "2026-07-12T14:21:54.804Z"
+      },
+      {
+        "id": "27",
+        "title": "Woodlands Glen",
+        "location": "Woodlands",
+        "price": 650000,
+        "propertyType": "HDB Flat",
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "floorArea": 1001,
+        "images": [
+          "images/houses/woodlands_glen.jpg"
+        ],
+        "description": "",
+        "amenities": [
+          "Causeway Point"
+        ],
+        "schools": [
+          "Woodlands Ring Primary School"
+        ],
+        "mrt": [
+          "Woodlands South"
+        ],
+        "nearestMrt": "Woodlands South",
+        "tenure": "99-year leasehold",
+        "yearBuilt": 2017,
+        "maintenanceFee": 75,
+        "environment": "Suburban Expansion",
+        "featured": false,
+        "postedDate": "2026-07-12T14:21:54.804Z"
+      },
+      {
+        "id": "28",
+        "title": "Punggol Bayview",
+        "location": "Punggol",
+        "price": 720000,
+        "propertyType": "HDB Flat",
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "floorArea": 1001,
+        "images": [
+          "images/houses/punggol_bayview.jpg"
+        ],
+        "description": "",
+        "amenities": [
+          "Waterway Point"
+        ],
+        "schools": [
+          "Punggol View Primary School"
+        ],
+        "mrt": [
+          "Punggol"
+        ],
+        "nearestMrt": "Punggol",
+        "tenure": "99-year leasehold",
+        "yearBuilt": 2018,
+        "maintenanceFee": 78,
+        "environment": "Waterfront Living",
+        "featured": false,
+        "postedDate": "2026-07-12T14:21:54.804Z"
+      },
+      {
+        "id": "29",
+        "title": "Sembawang Hills Estate",
+        "location": "Ang Mo Kio",
+        "price": 5800000,
+        "propertyType": "Pure Landed",
+        "bedrooms": 5,
+        "bathrooms": 4,
+        "floorArea": 3500,
+        "images": [
+          "images/houses/sembawang_hills.jpg"
+        ],
+        "description": "",
+        "amenities": [
+          "Lower Peirce Reservoir"
+        ],
+        "schools": [
+          "CHIJ St. Nicholas Girls' School"
+        ],
+        "mrt": [
+          "Mayflower"
+        ],
+        "nearestMrt": "Mayflower",
+        "tenure": "Freehold",
+        "yearBuilt": 1980,
+        "maintenanceFee": 0,
+        "environment": "Low-Density Residential",
+        "featured": false,
+        "postedDate": "2026-07-12T14:21:54.804Z"
+      },
+      {
+        "id": "30",
+        "title": "Belgravia Ace",
+        "location": "Ang Mo Kio",
+        "price": 4500000,
+        "propertyType": "Strata Landed",
+        "bedrooms": 5,
+        "bathrooms": 5,
+        "floorArea": 3600,
+        "images": [
+          "images/houses/belgravia_ace.jpg"
+        ],
+        "description": "",
+        "amenities": [
+          "Greenwich V"
+        ],
+        "schools": [
+          "Rosyth School"
+        ],
+        "mrt": [
+          "Ang Mo Kio"
+        ],
+        "nearestMrt": "Ang Mo Kio",
+        "tenure": "Freehold",
+        "yearBuilt": 2024,
+        "maintenanceFee": 1000,
+        "environment": "Gated Community",
+        "featured": false,
+        "postedDate": "2026-07-12T14:21:54.804Z"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 30,
+      "totalItems": 30,
+      "totalPages": 1
+    }
+  }
+}
